@@ -1,0 +1,242 @@
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCreateUser, useUsers, useDepartments } from "@/hooks/use-users";
+
+const createSupervisorSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  departmentId: z.string().optional(),
+  supervisorId: z.string().optional(),
+});
+
+type CreateSupervisorForm = z.infer<typeof createSupervisorSchema>;
+
+interface CreateSupervisorDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function CreateSupervisorDialog({
+  open,
+  onOpenChange,
+}: CreateSupervisorDialogProps) {
+  const createUser = useCreateUser();
+  const { data: departments } = useDepartments();
+  const { data: admins } = useUsers({ role: "admin" });
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<CreateSupervisorForm>({
+    resolver: zodResolver(createSupervisorSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      departmentId: undefined,
+      supervisorId: undefined,
+    },
+  });
+
+  const selectedDeptId = watch("departmentId");
+  const selectedSupId = watch("supervisorId");
+
+  const onSubmit = (values: CreateSupervisorForm) => {
+    createUser.mutate(
+      {
+        ...values,
+        role: "supervisor",
+        departmentId: values.departmentId || undefined,
+        supervisorId: values.supervisorId || undefined,
+      },
+      {
+        onSuccess: (response) => {
+          toast.success(response.message || "Supervisor created successfully");
+          reset();
+          onOpenChange(false);
+        },
+        onError: (error: any) => {
+          toast.error(
+            error?.response?.data?.message || "Failed to create supervisor"
+          );
+        },
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Supervisor</DialogTitle>
+          <DialogDescription>
+            Create a team supervisor with department assignment and team leadership permissions.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            {/* First Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="sup-first-name" className="text-xs">
+                First Name
+              </Label>
+              <Input
+                id="sup-first-name"
+                placeholder="e.g. Femi"
+                {...register("firstName")}
+              />
+              {errors.firstName && (
+                <p className="text-xs text-destructive">
+                  {errors.firstName.message}
+                </p>
+              )}
+            </div>
+
+            {/* Last Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="sup-last-name" className="text-xs">
+                Last Name
+              </Label>
+              <Input
+                id="sup-last-name"
+                placeholder="e.g. Balogun"
+                {...register("lastName")}
+              />
+              {errors.lastName && (
+                <p className="text-xs text-destructive">
+                  {errors.lastName.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Email */}
+          <div className="space-y-1.5">
+            <Label htmlFor="sup-email" className="text-xs">
+              Email
+            </Label>
+            <Input
+              id="sup-email"
+              type="email"
+              placeholder="femi.balogun@company.com"
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="text-xs text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+
+          {/* Password */}
+          <div className="space-y-1.5">
+            <Label htmlFor="sup-password" className="text-xs">
+              Temporary Password
+            </Label>
+            <Input
+              id="sup-password"
+              type="password"
+              placeholder="••••••••"
+              {...register("password")}
+            />
+            {errors.password && (
+              <p className="text-xs text-destructive">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          {/* Department */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Department</Label>
+            <Select
+              value={selectedDeptId}
+              onValueChange={(v) => setValue("departmentId", v ? String(v) : undefined)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                {departments?.map((dept) => (
+                  <SelectItem key={dept.d.id} value={dept.d.id}>
+                    {dept.d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Reporting Manager */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Reports To (Admin Manager)</Label>
+            <Select
+              value={selectedSupId}
+              onValueChange={(v) => setValue("supervisorId", v ? String(v) : undefined)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select reporting manager" />
+              </SelectTrigger>
+              <SelectContent>
+                {admins?.map((admin) => (
+                  <SelectItem key={admin.u.id} value={admin.u.id}>
+                    {admin.u.firstName} {admin.u.lastName} ({admin.u.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={createUser.isPending}
+              className="gap-2"
+            >
+              {createUser.isPending && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              Create Supervisor
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

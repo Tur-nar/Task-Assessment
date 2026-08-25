@@ -74,6 +74,16 @@ export class Neo4jService implements OnModuleInit, OnModuleDestroy {
   private unwrap(value: any): any {
     if (value === null || value === undefined) return value;
     if (neo4j.isInt(value)) return value.toNumber();
+    if (
+      neo4j.isDateTime(value) ||
+      neo4j.isDate(value) ||
+      neo4j.isLocalDateTime(value) ||
+      neo4j.isTime(value) ||
+      neo4j.isLocalTime(value) ||
+      neo4j.isDuration(value)
+    ) {
+      return value.toString();
+    }
     if (Array.isArray(value)) return value.map((v) => this.unwrap(v));
     if (value.properties) {
       const props: Record<string, unknown> = {};

@@ -11,12 +11,15 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
-  app.enableCors({ origin: config.get<string>('FRONTEND_URL') });
+  app.enableCors({
+    origin: config.get<string>('FRONTEND_URL'),
+    credentials: true,
+  });
   app.useGlobalInterceptors(app.get(ResponseInterceptor));
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const port = config.get<number>('PORT', 3000);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   // eslint-disable-next-line no-console
   console.log(`TaskManager Pro API listening on :${port}`);
 }

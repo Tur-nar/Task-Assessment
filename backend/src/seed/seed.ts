@@ -20,18 +20,17 @@ async function main() {
 
     const pw = (plain: string) => bcrypt.hashSync(plain, 10);
 
-    // ---------- Departments ----------
     console.log('Creating departments...');
-    const [eng, ops] = await Promise.all(
-      ['Engineering', 'Operations'].map(async (name) => {
-        const id = uuid();
-        await session.run(
-          `CREATE (d:Department {id: $id, name: $name, description: $name + ' department', createdAt: datetime()})`,
-          { id, name },
-        );
-        return { id, name };
-      }),
-    );
+    const deptList: { id: string; name: string }[] = [];
+    for (const name of ['Development', 'Operations']) {
+      const id = uuid();
+      await session.run(
+        `CREATE (d:Department {id: $id, name: $name, description: $name + ' department', createdAt: datetime()})`,
+        { id, name },
+      );
+      deptList.push({ id, name });
+    }
+    const [eng, ops] = deptList;
 
     console.log('Creating users...');
     const admin = { id: uuid(), firstName: 'Ada', lastName: 'Okoro', email: 'ada.okoro@org.com' };

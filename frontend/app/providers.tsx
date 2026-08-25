@@ -1,0 +1,27 @@
+"use client";
+
+import React from "react";
+
+import { ThemeProvider } from "@/providers/theme-provider";
+import QueryProvider from "@/providers/query-provider";
+import { Toaster } from "sonner";
+
+type ProvidersProps = {
+    children: React.ReactNode;
+};
+
+export default function Providers({ children }: ProvidersProps) {
+    return (
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <QueryProvider>
+                {children}
+                <Toaster position="top-right" />
+            </QueryProvider>
+        </ThemeProvider>
+    );
+}
