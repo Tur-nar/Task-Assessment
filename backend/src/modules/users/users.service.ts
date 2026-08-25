@@ -1,8 +1,9 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import { Neo4jService } from '../../lib/neo4j/neo4j.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -66,7 +67,8 @@ export class UsersService {
       'READ',
     );
     if (!row) return null;
-    return { ...row.u, department: row.d ?? null, supervisor: row.s ?? null };
+    const { passwordHash, ...safeUser } = row.u;
+    return { ...safeUser, department: row.d ?? null, supervisor: row.s ?? null };
   }
 
   async list(filters: { role?: string; departmentId?: string; status?: string }) {
@@ -76,7 +78,7 @@ export class UsersService {
        WHERE ($role IS NULL OR u.role = $role)
          AND ($departmentId IS NULL OR d.id = $departmentId)
          AND ($status IS NULL OR u.status = $status)
-       RETURN u, d
+       RETURN u { .*, passwordHash: null } AS u, d
        ORDER BY u.lastName, u.firstName`,
       {
         role: filters.role ?? null,
@@ -87,10 +89,88 @@ export class UsersService {
     );
   }
 
+  async listSupervisors() {
+    return this.neo4j.run(
+      `MATCH (u:User {role: 'supervisor', status: 'active'})
+       OPTIONAL MATCH (u)-[:MEMBER_OF]->(d:Department)
+       OPTIONAL MATCH (member:User)-[:SUPERVISED_BY]->(u)
+       WITH u, d, collect(member { .id, .firstName, .lastName, .email, .status }) AS teamMembers
+       RETURN u { .*, passwordHash: null } AS u, d, teamMembers
+       ORDER BY u.lastName`,
+      {},
+      'READ',
+    );
+  }
+
+  async update(id: string, dto: UpdateUserDto) {
+    // Update basic fields
+    await this.neo4j.run(
+      `MATCH (u:User {id: $id})
+       SET u.firstName = coalesce($firstName, u.firstName),
+           u.lastName = coalesce($lastName, u.lastName),
+           u.role = coalesce($role, u.role)`,
+      {
+        id,
+        firstName: dto.firstName ?? null,
+        lastName: dto.lastName ?? null,
+        role: dto.role ?? null,
+      },
+    );
+
+    // Update department relationship if provided
+    if (dto.departmentId !== undefined) {
+      await this.neo4j.run(
+        `MATCH (u:User {id: $id})
+         OPTIONAL MATCH (u)-[old:MEMBER_OF]->(:Department)
+         DELETE old
+         WITH u
+         OPTIONAL MATCH (d:Department {id: $departmentId})
+         FOREACH (_ IN CASE WHEN d IS NOT NULL THEN [1] ELSE [] END |
+           MERGE (u)-[:MEMBER_OF]->(d)
+         )`,
+        { id, departmentId: dto.departmentId ?? null },
+      );
+    }
+
+    // Update supervisor relationship if provided
+    if (dto.supervisorId !== undefined) {
+      await this.neo4j.run(
+        `MATCH (u:User {id: $id})
+         OPTIONAL MATCH (u)-[old:SUPERVISED_BY]->(:User)
+         DELETE old
+         WITH u
+         OPTIONAL MATCH (s:User {id: $supervisorId})
+         FOREACH (_ IN CASE WHEN s IS NOT NULL THEN [1] ELSE [] END |
+           MERGE (u)-[:SUPERVISED_BY]->(s)
+         )`,
+        { id, supervisorId: dto.supervisorId ?? null },
+      );
+    }
+
+    return this.findById(id);
+  }
+
+  async delete(id: string) {
+    // Block delete if user has active tasks
+    const [row] = await this.neo4j.run(
+      `MATCH (u:User {id: $id})
+       OPTIONAL MATCH (t:Task)-[:ASSIGNED_TO]->(u)
+       WHERE t.status IN ['not_started', 'in_progress', 'overdue']
+       RETURN count(t) AS activeTasks`,
+      { id },
+      'READ',
+    );
+    if (row && row.activeTasks > 0) {
+      throw new BadRequestException('Cannot delete a user with active tasks. Reassign or complete their tasks first.');
+    }
+    await this.neo4j.run(`MATCH (u:User {id: $id}) DETACH DELETE u`, { id });
+    return { message: 'User deleted' };
+  }
+
   async reportingChain(userId: string) {
     return this.neo4j.run(
       `MATCH path = (u:User {id: $userId})-[:SUPERVISED_BY*1..10]->(manager:User)
-       RETURN manager, length(path) AS depth
+       RETURN manager { .*, passwordHash: null } AS manager, length(path) AS depth
        ORDER BY depth`,
       { userId },
       'READ',
@@ -100,7 +180,7 @@ export class UsersService {
   async teamMembers(supervisorId: string) {
     return this.neo4j.run(
       `MATCH (member:User)-[:SUPERVISED_BY]->(:User {id: $supervisorId})
-       RETURN member`,
+       RETURN member { .*, passwordHash: null } AS member`,
       { supervisorId },
       'READ',
     );
@@ -111,6 +191,7 @@ export class UsersService {
       id,
       status,
     });
+    return { message: `User status set to ${status}` };
   }
 
   async reassignSupervisor(memberIds: string[], newSupervisorId: string) {
@@ -123,5 +204,6 @@ export class UsersService {
        MERGE (u)-[:SUPERVISED_BY]->(s)`,
       { memberIds, newSupervisorId },
     );
+    return { message: 'Supervisor reassigned' };
   }
 }

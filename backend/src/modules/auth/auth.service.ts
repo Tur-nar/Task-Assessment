@@ -82,4 +82,42 @@ export class AuthService implements OnModuleInit {
     const { passwordHash, ...safeUser } = user;
     return { token, user: safeUser };
   }
+
+  async me(userId: string) {
+    const [row] = await this.neo4j.run(
+      `MATCH (u:User {id: $userId})
+       OPTIONAL MATCH (u)-[:MEMBER_OF]->(d:Department)
+       OPTIONAL MATCH (u)-[:SUPERVISED_BY]->(s:User)
+       RETURN u, d, s`,
+      { userId },
+      'READ',
+    );
+    if (!row) return null;
+    const { passwordHash, ...safeUser } = row.u;
+    return {
+      ...safeUser,
+      department: row.d ?? null,
+      supervisor: row.s ? { id: row.s.id, firstName: row.s.firstName, lastName: row.s.lastName } : null,
+    };
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const [row] = await this.neo4j.run(
+      `MATCH (u:User {id: $userId}) RETURN u`,
+      { userId },
+      'READ',
+    );
+    if (!row) throw new UnauthorizedException('User not found');
+
+    const matches = await bcrypt.compare(currentPassword, row.u.passwordHash);
+    if (!matches) throw new UnauthorizedException('Current password is incorrect');
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await this.neo4j.run(
+      `MATCH (u:User {id: $userId}) SET u.passwordHash = $newHash`,
+      { userId, newHash },
+    );
+
+    return { message: 'Password changed successfully' };
+  }
 }

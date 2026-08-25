@@ -45,52 +45,43 @@ This is a **brownfield** project (backend already exists) — the workflow's own
 ```
 src/
 ├── main.ts                  # bootstrap only — pipes, filters, listen()
-├── app.module.ts
-├── lib/                      # infra — one subfolder each, @Global()
+├── app.module.ts            # imports all feature modules + Neo4jModule
+├── lib/                      # infra — @Global()
 │   └── neo4j/                # Neo4jService — wraps neo4j-driver, every query goes through .run()
 ├── modules/                  # one folder per feature
-│   ├── auth/
-│   │   ├── auth.module.ts  auth.service.ts  auth.controller.ts
-│   │   ├── jwt.strategy.ts  jwt-auth.guard.ts
-│   │   └── dto/
-│   ├── users/
-│   │   ├── users.module.ts  users.service.ts  users.controller.ts  users.repository.ts
-│   │   └── dto/
-│   ├── departments/
-│   │   ├── departments.module.ts  departments.service.ts  departments.controller.ts  departments.repository.ts
-│   ├── tasks/
-│   │   ├── tasks.module.ts  tasks.service.ts  tasks.controller.ts  tasks.repository.ts
-│   │   └── dto/
-├── gateway/                  # Socket.io gateways — none yet, reserved for if real-time is added
-├── scheduler/                # one file per cron task — none yet, reserved (e.g. a future notifications digest)
-├── common/                   # guards, decorators, interceptors, filters, pipes — roles.guard.ts, roles.decorator.ts belong here
+│   ├── auth/                 # auth.module.ts, auth.service.ts, auth.controller.ts, jwt.strategy.ts, dto/
+│   ├── users/                # users.module.ts, users.service.ts, users.controller.ts, dto/
+│   ├── departments/          # departments.module.ts, departments.service.ts, departments.controller.ts, dto/
+│   ├── tasks/                # tasks.module.ts, tasks.service.ts, tasks.controller.ts, dto/
+│   ├── comments/             # comments.module.ts, comments.service.ts, comments.controller.ts, dto/
+│   ├── performance/          # performance.module.ts, performance.service.ts, performance.controller.ts
+│   ├── targets/              # targets.module.ts, targets.service.ts, targets.controller.ts, dto/
+│   └── notifications/        # notifications.module.ts, notifications.service.ts, notifications.controller.ts
+├── common/                   # guards, decorators — roles.guard.ts, roles.decorator.ts, jwt-auth.guard.ts
 └── seed/
-    └── seed.ts               # run with `npm run seed` — wipes and recreates demo data, never point at real data
+    └── seed.ts               # run with `npm run seed` — wipes and recreates demo data
 ```
-No `*.processor.ts` per feature — no BullMQ in this project, nothing owns a queue (see §10).
 
-**Naming:** `<name>.module|controller|service|repository|guard|strategy.ts`. DTOs: `<action>-<entity>.dto.ts` → class `CreateTaskDto`. Env vars SCREAMING_SNAKE_CASE (see `.env.example`). Scaffold with `nest g module/controller/service <name>` — don't hand-write boilerplate.
-
-> **This doesn't match the current zip.** What's actually there is flat — `src/auth/`, `src/users/`, `src/departments/`, `src/tasks/`, `src/database/` sit directly under `src/`, not under `lib/`/`modules/`; `roles.guard.ts`/`roles.decorator.ts` live in `auth/`, not `common/`; `departments.module.ts` has its service and controller inline rather than split out. See my next message — I need to know whether to move the existing files to match this, or treat this as the standard for new work only.
+**Naming:** `<name>.module|controller|service|guard|strategy.ts`. DTOs: `<action>-<entity>.dto.ts` → class `CreateTaskDto`. Env vars SCREAMING_SNAKE_CASE (see `.env.example`). Scaffold with `nest g module/controller/service <name>` — don't hand-write boilerplate.
 
 ## 6. Auth
 - Plain JWT (Passport `passport-jwt`) + bcrypt — not Better Auth, decided deliberately for this project. Don't add Better Auth or any session library without flagging first.
-- Lives under `modules/auth/` as a full NestJS module (service, controller, strategy, guard) — not a `lib/auth.ts` plain export. That pattern was specifically for Better Auth's instance-not-provider shape; a Passport strategy is naturally a Nest provider, so it belongs in `modules/`, not `lib/`.
+- Lives under `modules/auth/` as a full NestJS module (service, controller, strategy, guard) — not a `lib/auth.ts` plain export.
 - Single-org, no self-signup anywhere. `AuthService.onModuleInit()` seeds one `super_admin` from `SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` env vars if none exists yet. Every other account is created via `POST /api/users`, gated to `super_admin`/`admin`.
 - `JwtStrategy` validates the bearer token → `request.user`. `JwtAuthGuard` (`AuthGuard('jwt')`) protects routes. `RolesGuard` + `@Roles(...)` enforce role checks on top — apply both at the controller level (`@UseGuards(JwtAuthGuard, RolesGuard)`), `@Roles()` per route that needs restricting.
 - `super_admin` implicitly passes every `@Roles()` check inside `RolesGuard` — don't add per-route super_admin bypasses, it's handled once, centrally.
-- Auth fields (`passwordHash`, `role`) live directly on the `User` node. There's no separate auth-library table, so don't build a 1:1 profile-split model — that pattern existed for Better Auth's user table and doesn't apply here.
-- `passwordHash` is stripped before a `User` is ever returned from a service (see `AuthService.login`, `UsersService.create`) — follow that pattern anywhere else a `User` node crosses a controller boundary.
+- Auth fields (`passwordHash`, `role`) live directly on the `User` node.
+- `passwordHash` is stripped before a `User` is ever returned from a service — keep it that way on any new endpoint that returns a `User`.
 
 ## 7. Database (CognoDB / Graph)
-- `Neo4jService` (`database/neo4j.module.ts`, `@Global()`) wraps the official `neo4j-driver`, connects once via `onModuleInit`, closes via `onModuleDestroy`. Never construct a driver or session anywhere else.
-- Every query goes through `Neo4jService.run(cypher, params, mode)` — parameterized, always. No string-concatenated Cypher, no exceptions, including for internal/admin-only queries.
-- **One repository per node label.** All Cypher for that label lives in `<feature>.repository.ts`. Services call the repository; they never call `Neo4jService.run()` directly.
-- Recursive/self-referencing relationships (`SUPERVISED_BY`, `DEPENDS_ON`) use **bounded** variable-length paths (`*1..10`, `*1..20` — see `users.repository.ts#reportingChain`, `tasks.repository.ts#transitiveBlockers`). Never an unbounded `*` on a graph that admits cycles.
-- **New recursive relationship types must include a cycle check before writing the edge** — see `tasks.repository.ts#addDependency`. This is not optional: CognoDB will happily create a cycle, and an unbounded or later-added traversal over it will loop.
-- Complex aggregation is one Cypher query with `OPTIONAL MATCH` / `WITH` / `collect()` / `count()`, not multiple round-trips reduced in JS — see `departments.repository.ts#list` (staff count + completion rate in one call).
-- No ORM, no migrations — schema is implicit in node labels and relationship types. A new label or relationship type is a schema decision: document it in `teamos-cognodb-plan.md` and flag it, same weight an ORM model change used to carry.
-- Deletes are currently **hard deletes** (`DETACH DELETE` — see `departments.repository.ts#delete`, `tasks.repository.ts#delete`). No soft-delete pattern exists. Don't introduce one for a subset of nodes without flagging; it's an all-or-nothing convention if it happens.
+- `Neo4jService` (`lib/neo4j/neo4j.module.ts`, `@Global()`) wraps the official `neo4j-driver`, connects once via `onModuleInit`, closes via `onModuleDestroy`. Never construct a driver or session anywhere else.
+- Every query goes through `Neo4jService.run(cypher, params, mode)` — parameterized, always. No string-concatenated Cypher, no exceptions.
+- **Direct service pattern:** Queries live directly in each feature's `service.ts` method, keeping code co-located, concise, and eliminating unnecessary repository pass-through boilerplate.
+- Recursive/self-referencing relationships (`SUPERVISED_BY`, `DEPENDS_ON`, `REPLY_TO`) use **bounded** variable-length paths (`*1..10`, `*1..20`). Never an unbounded `*` on a graph that admits cycles.
+- **New recursive relationship types must include a cycle check before writing the edge** — see `tasks.service.ts#addDependency`.
+- Complex aggregation is one Cypher query with `OPTIONAL MATCH` / `WITH` / `collect()` / `count()`.
+- No ORM, no migrations — schema is implicit in node labels and relationship types.
+- Deletes are **hard deletes** (`DETACH DELETE`). No soft-delete pattern exists. Don't introduce one for a subset of nodes without flagging; it's an all-or-nothing convention if it happens.
 - CognoDB's free tier is small (0.5 vCPU, 256MB RAM, 200 connections). Don't add connection-pool tuning, bulk-write batching, or anything sized for a larger cluster — it's solving a problem this project doesn't have.
 
 ## 8. Security — non-negotiable, enabled once at the top of the pipeline
