@@ -1,9 +1,14 @@
 {
-  "tool": "jest",
+  "tool": "vitest",
+  "backendTool": "jest",
   "gate": null,
-  "additionalTools": ["@nestjs/testing", "ts-jest"],
+  "additionalTools": [
+    "@testing-library/react",
+    "@testing-library/jest-dom",
+    "@testing-library/user-event"
+  ],
   "e2eTool": "none",
   "testDir": "beside the source",
-  "filePattern": "*.spec.ts",
+  "filePattern": "*.test.{ts,tsx}",
   "packageManager": "npm"
 }

@@ -1,44 +1,41 @@
 # TaskManager Pro (CognoDB Edition)
 
-> **Enterprise Task & Team Orchestration Powered by Graph Intelligence**  
-> *Built with NestJS, Next.js 16, and CognoDB (openCypher over Bolt Protocol).*
+> A task and team management app, built with NestJS, Next.js 16, and CognoDB (a graph database that speaks openCypher over the Bolt protocol).
 
 ---
 
 ## Project Overview
 
-**TaskManager Pro** is an enterprise-grade task and workforce management system engineered specifically for graph database architectures. Backed by **CognoDB**, it natively models organizational hierarchies, transitive task dependencies, departmental alignments, targets, and live performance metrics as first-class graph entities.
+TaskManager Pro is an internal task and workforce management system built On a graph database. It models reporting lines, task dependencies, departments, and performance scores as real connections in the graph, not as foreign keys in separate tables.
 
-Traditional task managers struggle with recursive organizational structures and deep dependency chains. TaskManager Pro leverages CognoDB to provide instant multi-hop reporting traversals, real-time circular dependency detection, transitive blocker resolution, and dynamic on-read performance evaluations without recursive SQL queries or background cron jobs.
+Regular task managers struggle with three things: reporting hierarchies that can be any number of levels deep, task dependency chains where one task blocks another, which blocks another and performance trailing and management. TaskManager Pro uses CognoDB to handle both with simple queries, no recursive SQL, and no background job needed to keep dependency checks up to date.
 
 ### Core Capabilities
 
-- **Dependency Intelligence:** Define prerequisite task chains (`Task -[:DEPENDS_ON]-> Task`) with automated circular dependency prevention.
-- **Transitive Blocker Detection:** Instantly inspect the entire upstream dependency tree blocking any given task.
-- **Multi-Hop Reporting Chains:** Traverse arbitrary supervisor levels (`User -[:SUPERVISED_BY*1..10]-> User`) in a single query.
-- **Live Performance Scoring:** Scores are derived dynamically on read directly from active graph paths (no stale background cache).
-- **Target Tracking & Progress Entries:** Set individual and departmental goals with chronological milestone submissions.
-- **Threaded Task Comments:** Contextual conversations on tasks supporting nested reply trees (`TaskComment -[:REPLY_TO]-> TaskComment`).
-- **Interactive UI/UX:** Built with Next.js 16, Tailwind CSS v4, Framer Motion, and a 5-card animated Bento Grid showcase.
+- **Task dependencies:** Tasks can depend on other tasks (`Task -[:DEPENDS_ON]-> Task`), with a check that stops circular dependencies before they're created.
+- **Blocker lookup:** See every task, at any depth, that's blocking a given task from starting.
+- **Reporting chains:** Follow a staff member's management line up as many levels as it goes, in one query (`User -[:SUPERVISED_BY*1..10]-> User`).
+- **Performance scoring:** Scores are calculated when you ask for them, from the current task data in the graph — not from a stored number a background job updates later.
+- **Task comments:** Discussions on a task support nested replies (`TaskComment -[:REPLY_TO]-> TaskComment`).
+- **UI:** Built with Next.js 16, Tailwind CSS v4, shadcn and vengeance ui components, and Framer Motion for animations.
 
 ---
 
 ## Why a Graph Database?
 
-A critical requirement of this project was choosing an application domain where a graph database genuinely excels over a relational database.
+Part of this assignment was picking a problem where a graph database is a genuinely better fit than a relational one, not just a different way to store the same data. Two relationships in this app fit that description: they're self-referencing and can go arbitrarily deep, which is what graph databases are built for.
 
-| Relational (SQL) Pain Point | CognoDB (Graph Database) Advantage |
-|---|---|
-| **Multi-Hop Reporting Hierarchies:** Finding an employee's full management line requires complex recursive Common Table Expressions (CTEs) or $N+1$ iterative database queries. | **Bounded Graph Traversal:** A single bounded Cypher expression `(u)-[:SUPERVISED_BY*1..10]->(m)` returns the entire chain ordered by depth in microseconds. |
-| **Transitive Task Dependencies:** Identifying all upstream blockers across nested dependencies requires multi-table self-joins with manual loop prevention. | **Variable-Length Path Queries:** Direct pattern matching `(t)-[:DEPENDS_ON*1..20]->(b)` discovers all transitive blockers across arbitrary depths. |
-| **Cycle & Deadlock Prevention:** Preventing circular dependencies (e.g. Task A $\rightarrow$ Task B $\rightarrow$ Task A) in SQL requires custom triggers or application-level graph reconstruction. | **Pre-Write Cycle Guard:** One Cypher line `MATCH (would)-[:DEPENDS_ON*1..20]->(t) RETURN count(t)` verifies graph validity before the edge is committed. |
-| **Cross-Entity Discovery:** Linking users, departments, and team targets requires 3-way table joins with foreign key indexes. | **Natural Relationship Traversal:** Expressive 2-hop pattern matching `(User)-[:MEMBER_OF]->(Department)<-[:FOR_DEPARTMENT]-(Target)`. |
+| Problem | In a relational database | In CognoDB |
+|---|---|---|
+| **Reporting chains** — how far up does an employee's management line go? | Not known in advance, so it's either a recursive query or fetching one manager at a time in a loop. | One line — `(u)-[:SUPERVISED_BY*1..10]->(m)` — returns the whole chain in one query. |
+| **Task dependencies** — what's blocking this task, including what's blocking the things blocking it? | The tasks table joined to itself repeatedly, plus extra logic to stop things if a dependency loop was ever created by mistake. | Same idea, different relationship — `(t)-[:DEPENDS_ON*1..20]->(blocker)`. |
+| **Stopping circular dependencies before they happen** | A database trigger, or pulling the whole dependency graph into the app to check by hand. | One query, run before saving: "does a path already exist going the other way?" |
 
 ---
 
 ## Graph Data Model
 
-The application models 8 core node types connected by 17 directed relationship types:
+The app has 6 node types connected by 13 relationship types.
 
 ### Node Labels
 - `User`: Team members, supervisors, and administrators.
@@ -46,8 +43,6 @@ The application models 8 core node types connected by 17 directed relationship t
 - `Task`: Work units with status, priority, and deadlines.
 - `SubTask`: Checklist items attached to a task.
 - `TaskComment`: Threaded discussions on tasks.
-- `Target`: Performance goals (individual or departmental).
-- `TargetEntry`: Milestone logs contributing to target progress.
 - `Notification`: Activity alerts tied to tasks and users.
 
 ### Relationship Schema
@@ -65,11 +60,6 @@ graph TD
     Task -->|HAS_COMMENT| TaskComment
     TaskComment -->|AUTHORED_BY| User
     TaskComment -->|REPLY_TO| TaskComment
-    Target -->|ASSIGNED_TO| User
-    Target -->|FOR_DEPARTMENT| Department
-    Target -->|CREATED_BY| User
-    TargetEntry -->|LOGGED_FOR| Target
-    TargetEntry -->|SUBMITTED_BY| User
     Notification -->|FOR_USER| User
     Notification -->|RELATED_TO| Task
 ```
@@ -79,7 +69,7 @@ graph TD
 ## Key Cypher Queries
 
 ### 1. Multi-Hop Traversal (Employee Reporting Line)
-Traverses upwards from any staff member to the executive root:
+Follows a staff member up through their managers, however many levels that takes:
 ```cypher
 MATCH path = (u:User {id: $userId})-[:SUPERVISED_BY*1..10]->(manager:User)
 RETURN manager.id AS id,
@@ -90,8 +80,8 @@ RETURN manager.id AS id,
 ORDER BY depth ASC
 ```
 
-### Transitive Blocker Resolution (Relational-Awkward Query)
-Retrieves all upstream tasks currently blocking progress:
+### 2. Transitive Blocker Resolution (Relational-Awkward Query)
+Finds every task, at any depth, that's currently blocking a given task:
 ```cypher
 MATCH (t:Task {id: $taskId})-[:DEPENDS_ON*1..20]->(blocker:Task)
 OPTIONAL MATCH (blocker)-[:ASSIGNED_TO]->(assignee:User)
@@ -102,15 +92,15 @@ RETURN DISTINCT blocker.id AS id,
        assignee.firstName + ' ' + assignee.lastName AS assignedToName
 ```
 
-### Circular Dependency Guard
-Executed prior to establishing a new `DEPENDS_ON` relationship to prevent graph deadlocks:
+### 3. Circular Dependency Guard
+Runs before a new `DEPENDS_ON` link is saved, to catch a loop (task A depending on task B depending on task A) before it can exist:
 ```cypher
 MATCH (wouldBeDep:Task {id: $dependsOnTaskId})-[:DEPENDS_ON*1..20]->(t:Task {id: $taskId})
 RETURN count(t) AS cycleCount
 ```
 
-### Dynamic Performance Scoring on Read
-Aggregates user completion metrics on the fly directly from the graph:
+### 4. Performance Data
+Pulls the raw task counts for one user in a single query. The score itself — weighted bonuses and penalties, 0 to 100 — is then worked out from these numbers in the backend code. Keeping that math in TypeScript instead of Cypher makes it easier to test and change later.
 ```cypher
 MATCH (u:User {id: $userId})
 OPTIONAL MATCH (t:Task)-[:ASSIGNED_TO]->(u)
@@ -150,8 +140,8 @@ RETURN u.id AS userId,
                                   └───────────────────────────────┘
 ```
 
-- **Backend (NestJS):** Domain-driven modules with a centralized `Neo4jService` managing Bolt protocol connectivity. All queries are fully parameterised to eliminate Cypher injection risks.
-- **Frontend (Next.js 16):** App Router architecture featuring optimistic UI updates via TanStack Query v5, Tailwind CSS v4 design tokens, and smooth Framer Motion interactions.
+- **Backend (NestJS):** Organized into modules by feature (`auth`, `users`, `departments`, `tasks`, `performance`, `notifications`). One shared `Neo4jService` handles the database connection. Every query uses parameters instead of building the query as a string, which avoids Cypher injection.
+- **Frontend (Next.js 16):** Built with the App Router, TanStack Query v5 for fetching and caching data, Tailwind CSS v4 for styling, and Framer Motion for animations.
 
 ---
 
@@ -159,47 +149,45 @@ RETURN u.id AS userId,
 
 | Page Route | Description |
 |---|---|
-| **`/` (Landing Page)** | Modern public landing page featuring a sticky glassmorphic navigation, animated `FlipFadeText` hero, a 5-card `TaskBentoGrid` (dependency graph, performance scores, notifications, departments, status board), architecture value cards, and footer CTA. |
-| **`/login`** | Secure authentication portal with interactive floating node canvas and domain-enforced login. |
-| **`/dashboard`** | Main command center displaying overall completion rates, status distribution charts, weekly activity trends, and top performers. |
-| **`/dashboard/tasks`** | Full task management grid with priority filters, search, sub-tasks checklist, dependency visualizer, blocker drawer, and threaded comment sheets. |
-| **`/dashboard/supervisors`** | Supervisor directory with team stats, team member drawers, and a selective member reassignment tool. |
-| **`/dashboard/departments`** | Department cards with real-time completion rates, member rosters, and department head assignments. |
-| **`/dashboard/staff`** | Team administration table with role promotion/demotion, account activation/deactivation, and multi-hop reporting chain viewer. |
-| **`/dashboard/targets`** | Individual and team goal cards with deadline countdowns, progress logging sheets, and milestone timelines. |
-| **`/dashboard/performance`** | Analytics suite featuring team radar metrics, comparison bar charts, and individual score breakdowns. |
-| **`/dashboard/notifications`** | Real-time user alert feed with severity indicators and read state toggles. |
+| **`/` (Landing Page)** | Public landing page with an animated hero section and a grid showing the app's main features: dependency graph, performance scores, notifications, departments, and task status. |
+| **`/login`** | Login page for staff accounts. |
+| **`/dashboard`** | Main overview: completion rates, status breakdown, weekly activity, and top performers. |
+| **`/dashboard/tasks`** | Task management grid with priority filters, search, sub-task checklists, a dependency viewer, a blockers panel, and threaded comments. |
+| **`/dashboard/supervisors`** | Supervisor list with team stats, a team-member view per supervisor, and a tool to reassign team members. |
+| **`/dashboard/departments`** | Department cards showing completion rates, member lists, and department head assignment. |
+| **`/dashboard/staff`** | Staff management table: change roles, activate/deactivate accounts, and view a person's full reporting chain. |
+| **`/dashboard/performance`** | Charts and tables for team performance, plus a breakdown of each person's score. |
+| **`/dashboard/notifications`** | Alert feed with severity indicators and read/unread state. |
 
 ---
 
 ## Development Phases & Workflow
 
-The system was developed following a disciplined 4-phase engineering roadmap:
+The project was built in four phases:
 
 ```
 ┌────────────────────────────────┐       ┌────────────────────────────────┐
 │  Phase 1: Backend Foundation   │ ────► │  Phase 2: Backend Completion   │
-│  • CognoDB Bolt Driver Layer   │       │  • Threaded Comments           │
-│  • JWT Auth & Seed Bootstrap   │       │  • On-Read Performance Engine  │
-│  • Users, Depts & Tasks Graph  │       │  • Targets & Progress Entries  │
+│  • CognoDB connection layer    │       │  • Threaded comments           │
+│  • JWT auth & seed bootstrap   │       │  • On-read performance scoring │
+│  • Users, depts & tasks graph  │       │  • In-app notifications        │
 └────────────────────────────────┘       └────────────────────────────────┘
                                                          │
                                                          ▼
 ┌────────────────────────────────┐       ┌────────────────────────────────┐
-│  Phase 4: Polish & Performance │ ◄──── │  Phase 3: Frontend Web App     │
-│  • 5-Card Task Bento Grid      │       │  • Next.js 16 App Router UI    │
-│  • GPU-Accelerated Animations  │       │  • TanStack Query Server Cache │
-│  • 60fps Scroll Optimizations  │       │  • Responsive Dashboard Sheets │
+│  Phase 4: Polish               │ ◄──── │  Phase 3: Frontend Web App     │
+│  • Feature overview grid       │       │  • Next.js 16 App Router UI    │
+│  • Animations                  │       │  • TanStack Query data layer   │
+│  • General performance pass    │       │  • Responsive dashboard pages  │
 └────────────────────────────────┘       └────────────────────────────────┘
 ```
 
 ### End-to-End Workflow Process
-1. **Account Provisioning:** Super Admin initializes the system and creates departments and staff accounts.
-2. **Task Creation & Dependency Linking:** A supervisor creates a task, assigns it to a team member, and links prerequisite dependencies.
-3. **Automated Blocker Check:** The system verifies transitive blockers. If blockers are incomplete, the task is flagged as not ready.
-4. **Execution & Sub-tasks:** Staff members work through checklist sub-tasks and discuss progress in threaded comments.
-5. **Real-Time Score Update:** Completing tasks immediately updates user performance ratings via graph queries without waiting for background jobs.
-6. **Milestone Targets:** Employees log numeric progress against individual or team targets with chronological entry tracking.
+1. **Account setup:** The super admin sets up the system and creates departments and staff accounts.
+2. **Task creation:** A supervisor, admin or super admin creates a task, assigns it to a team member, and links any tasks it depends on.
+3. **Blocker check:** The system checks for unfinished dependencies. If any exist, the task is marked as not ready to start.
+4. **Execution:** Staff work through sub-task checklists and discuss progress in threaded comments.
+5. **Score updates:** Performance scores reflect the latest task data as soon as you ask for them — there's no background job to wait for.
 
 ---
 
@@ -214,15 +202,13 @@ The system was developed following a disciplined 4-phase engineering roadmap:
 | **Set Task Dependencies** | ✅ | ✅ | ✅ | ❌ |
 | **Update Task Status** | ✅ | ✅ | ✅ | ✅ (Own tasks) |
 | **Manage Sub-tasks & Comments** | ✅ | ✅ | ✅ | ✅ (Own tasks) |
-| **Create & Edit Targets** | ✅ | ✅ | ✅ | ❌ |
-| **Log Target Progress Entries** | ✅ | ✅ | ✅ | ✅ (Assigned) |
 | **View Organization Analytics** | ✅ | ✅ | ✅ (Team only) | ❌ (Own only) |
 
 ---
 
 ## Default & Demo Credentials
 
-When the backend boots against an empty CognoDB database, it automatically provisions the root Super Admin account. Running `npm run seed` will populate rich demo departments, supervisors, staff, dependency chains, targets, and comments.
+When the backend starts against an empty CognoDB database, it automatically creates the root super admin account. Running `npm run seed` adds demo departments, supervisors, staff, dependency chains, and comments.
 
 ### Seeded Demo Accounts (All passwords: `Password123!`)
 
@@ -246,11 +232,18 @@ When the backend boots against an empty CognoDB database, it automatically provi
 ### Prerequisites
 - **Node.js:** v20.x or higher
 - **npm:** v10.x or higher
-- **CognoDB Cloud Instance:** Provision a free instance at [console.cognodb.com](https://console.cognodb.com).
 
 ---
 
-### Step 1: Backend Setup
+### Step 1: Create a CognoDB Instance
+
+1. Go to [console.cognodb.com](https://console.cognodb.com) and sign up. The free tier doesn't need a credit card.
+2. Create a new instance and pick the free **c0** size.
+3. Once created and running click on the connect button and copy the connection URI (it looks like `bolt+s://<instance-id>.databases.cognodb.cloud`) and the password.
+
+---
+ 
+### Step 2: Backend Setup
 
 1. Navigate to the backend directory:
    ```bash
@@ -279,20 +272,20 @@ When the backend boots against an empty CognoDB database, it automatically provi
    SUPER_ADMIN_PASSWORD=AdminPassword123!
    ```
 
-4. Populate sample data (Optional):
+4. Add sample data (optional):
    ```bash
    npm run seed
    ```
 
-5. Start the backend development server:
+5. Start the backend:
    ```bash
    npm run start:dev
    ```
-   *The backend will start at `http://localhost:3000`.*
+   *The backend runs at `http://localhost:3000`.*
 
 ---
 
-### Step 2: Frontend Setup
+### Step 3: Frontend Setup
 
 1. Open a new terminal and navigate to the frontend directory:
    ```bash
@@ -309,11 +302,11 @@ When the backend boots against an empty CognoDB database, it automatically provi
    NEXT_PUBLIC_API_URL=http://localhost:3000
    ```
 
-4. Start the Next.js development server:
+4. Start the frontend:
    ```bash
    npm run dev
    ```
-   *The web application will open at `http://localhost:3001` (or `http://localhost:3000`).*
+   *The web app runs at `http://localhost:3001` (or `http://localhost:3000` if the backend isn't running on 3000).*
 
 ---
 
