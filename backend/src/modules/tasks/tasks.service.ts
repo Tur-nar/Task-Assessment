@@ -47,7 +47,62 @@ export class TasksService {
     return row.t;
   }
 
-  list(filters: { status?: string; priority?: string; departmentId?: string; assignedToId?: string }) {
+  list(
+    filters: { status?: string; priority?: string; departmentId?: string; assignedToId?: string },
+    caller?: { id: string; role: string },
+  ) {
+    // Determine the set of visible user IDs based on caller role.
+    // super_admin / admin → all tasks (scopedIds = null).
+    // supervisor          → own tasks + direct reports' tasks.
+    // staff               → only their own tasks.
+    const isSupervisor = caller?.role === 'supervisor';
+    const isStaff = caller?.role === 'staff';
+
+    if (isSupervisor) {
+      // Graph query: caller's tasks + tasks of people SUPERVISED_BY caller.
+      return this.neo4j.run(
+        `MATCH (me:User {id: $callerId})
+         OPTIONAL MATCH (report:User)-[:SUPERVISED_BY]->(me)
+         WITH me, collect(report.id) + [me.id] AS visibleIds
+         MATCH (t:Task)-[:ASSIGNED_TO]->(assignee:User)
+         WHERE assignee.id IN visibleIds
+           AND ($status IS NULL OR t.status = $status)
+           AND ($priority IS NULL OR t.priority = $priority)
+         OPTIONAL MATCH (t)-[:BELONGS_TO]->(d:Department)
+         WHERE ($departmentId IS NULL OR d.id = $departmentId)
+         OPTIONAL MATCH (t)-[:ASSIGNED_BY]->(assigner:User)
+         RETURN DISTINCT t, assignee { .id, .firstName, .lastName, .email } AS assignee,
+                assigner { .id, .firstName, .lastName } AS assigner, d
+         ORDER BY t.deadline`,
+        {
+          callerId: caller.id,
+          status: filters.status ?? null,
+          priority: filters.priority ?? null,
+          departmentId: filters.departmentId ?? null,
+        },
+        'READ',
+      );
+    }
+
+    if (isStaff) {
+      return this.neo4j.run(
+        `MATCH (t:Task)-[:ASSIGNED_TO]->(assignee:User {id: $callerId})
+         OPTIONAL MATCH (t)-[:BELONGS_TO]->(d:Department)
+         OPTIONAL MATCH (t)-[:ASSIGNED_BY]->(assigner:User)
+         WHERE ($status IS NULL OR t.status = $status)
+           AND ($priority IS NULL OR t.priority = $priority)
+         RETURN t, assignee { .id, .firstName, .lastName, .email } AS assignee,
+                assigner { .id, .firstName, .lastName } AS assigner, d
+         ORDER BY t.deadline`,
+        {
+          callerId: caller.id,
+          status: filters.status ?? null,
+          priority: filters.priority ?? null,
+        },
+        'READ',
+      );
+    }
+
     return this.neo4j.run(
       `MATCH (t:Task)-[:ASSIGNED_TO]->(assignee:User)
        OPTIONAL MATCH (t)-[:BELONGS_TO]->(d:Department)
@@ -77,16 +132,61 @@ export class TasksService {
          OPTIONAL MATCH (t)-[:ASSIGNED_BY]->(assigner:User)
          OPTIONAL MATCH (t)-[:BELONGS_TO]->(d:Department)
          OPTIONAL MATCH (t)-[:DEPENDS_ON]->(dep:Task)
-         WITH t, assignee, assigner, d, collect(dep { .id, .title, .status }) AS dependencies
+         OPTIONAL MATCH (blocked:Task)-[:DEPENDS_ON]->(t)
+         WITH t, assignee, assigner, d,
+              collect(DISTINCT dep { .id, .title, .status, .priority }) AS rawDeps,
+              collect(DISTINCT blocked { .id, .title, .status, .priority }) AS rawDependents
+         WITH t, assignee, assigner, d,
+              [x IN rawDeps WHERE x.id IS NOT NULL] AS dependencies,
+              [x IN rawDependents WHERE x.id IS NOT NULL] AS dependents
          RETURN t, assignee { .id, .firstName, .lastName, .email } AS assignee,
-                assigner { .id, .firstName, .lastName } AS assigner, d, dependencies`,
-        { id },
+                assigner { .id, .firstName, .lastName } AS assigner, d,
+                dependencies, dependents,
+                (size(dependencies) = 0 OR all(d IN dependencies WHERE d.status IN $openStatuses)) AS ready`,
+        { id, openStatuses: OPEN_STATUSES },
         'READ',
       )
       .then((rows) => rows[0] ?? null);
   }
 
-  async getStats() {
+  async getStats(caller?: { id: string; role: string }) {
+    const isSupervisor = caller?.role === 'supervisor';
+    const isStaff = caller?.role === 'staff';
+
+    if (isSupervisor && caller?.id) {
+      const [row] = await this.neo4j.run(
+        `MATCH (me:User {id: $callerId})
+         OPTIONAL MATCH (report:User)-[:SUPERVISED_BY]->(me)
+         WITH me, collect(report.id) + [me.id] AS visibleIds
+         MATCH (t:Task)-[:ASSIGNED_TO]->(assignee:User)
+         WHERE assignee.id IN visibleIds
+         RETURN count(t) AS total,
+                count(CASE WHEN t.status = 'completed' THEN 1 END) AS completed,
+                count(CASE WHEN t.status = 'completed_late' THEN 1 END) AS completedLate,
+                count(CASE WHEN t.status = 'in_progress' THEN 1 END) AS inProgress,
+                count(CASE WHEN t.status = 'overdue' THEN 1 END) AS overdue,
+                count(CASE WHEN t.status = 'not_started' THEN 1 END) AS notStarted`,
+        { callerId: caller.id },
+        'READ',
+      );
+      return row ?? { total: 0, completed: 0, completedLate: 0, inProgress: 0, overdue: 0, notStarted: 0 };
+    }
+
+    if (isStaff && caller?.id) {
+      const [row] = await this.neo4j.run(
+        `MATCH (t:Task)-[:ASSIGNED_TO]->(assignee:User {id: $callerId})
+         RETURN count(t) AS total,
+                count(CASE WHEN t.status = 'completed' THEN 1 END) AS completed,
+                count(CASE WHEN t.status = 'completed_late' THEN 1 END) AS completedLate,
+                count(CASE WHEN t.status = 'in_progress' THEN 1 END) AS inProgress,
+                count(CASE WHEN t.status = 'overdue' THEN 1 END) AS overdue,
+                count(CASE WHEN t.status = 'not_started' THEN 1 END) AS notStarted`,
+        { callerId: caller.id },
+        'READ',
+      );
+      return row ?? { total: 0, completed: 0, completedLate: 0, inProgress: 0, overdue: 0, notStarted: 0 };
+    }
+
     const [row] = await this.neo4j.run(
       `MATCH (t:Task)
        RETURN count(t) AS total,
@@ -145,6 +245,11 @@ export class TasksService {
   }
 
   async updateStatus(id: string, status: string) {
+    const VALID_STATUSES = ['not_started', 'in_progress', 'completed', 'completed_late', 'overdue'];
+    if (!VALID_STATUSES.includes(status)) {
+      throw new BadRequestException(`Invalid status "${status}". Must be one of: ${VALID_STATUSES.join(', ')}`);
+    }
+
     if (status === 'in_progress') {
       const task = await this.findById(id);
       if (task?.t?.status === 'overdue') {

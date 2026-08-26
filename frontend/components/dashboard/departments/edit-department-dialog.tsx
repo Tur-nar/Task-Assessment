@@ -50,6 +50,7 @@ export function EditDepartmentDialog({
   const { data: supervisors } = useSupervisors();
   const open = !!department;
 
+  const filteredSupervisors = supervisors?.filter(supervisor => supervisor?.d?.id === department?.d?.id)
   const {
     register,
     handleSubmit,
@@ -147,7 +148,6 @@ export function EditDepartmentDialog({
             )}
           </div>
 
-          {/* Department Head */}
           <div className="space-y-1.5">
             <Label className="text-xs">Head of Department</Label>
             <Select
@@ -158,7 +158,7 @@ export function EditDepartmentDialog({
                 <SelectValue placeholder="Select supervisor or admin" />
               </SelectTrigger>
               <SelectContent>
-                {supervisors?.map((sup) => (
+                {filteredSupervisors?.map((sup) => (
                   <SelectItem key={sup.u.id} value={sup.u.id}>
                     {sup.u.firstName} {sup.u.lastName} ({sup.u.email})
                   </SelectItem>

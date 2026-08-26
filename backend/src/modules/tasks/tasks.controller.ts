@@ -33,19 +33,23 @@ export class TasksController {
 
   @Get('stats')
   @ResponseMessage('Task statistics retrieved successfully')
-  stats() {
-    return this.tasks.getStats();
+  stats(@Req() req: any) {
+    return this.tasks.getStats({ id: req.user.id, role: req.user.role });
   }
 
   @Get()
   @ResponseMessage('Tasks retrieved successfully')
   list(
+    @Req() req: any,
     @Query('status') status?: string,
     @Query('priority') priority?: string,
     @Query('departmentId') departmentId?: string,
     @Query('assignedToId') assignedToId?: string,
   ) {
-    return this.tasks.list({ status, priority, departmentId, assignedToId });
+    return this.tasks.list(
+      { status, priority, departmentId, assignedToId },
+      { id: req.user.id, role: req.user.role },
+    );
   }
 
   @Get(':id')

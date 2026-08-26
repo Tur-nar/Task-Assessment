@@ -13,7 +13,6 @@ export const ROUTES = {
   },
 } as const;
 
-/** Breadcrumb label overrides for route segments */
 export const ROUTE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
   staff: "Staff",

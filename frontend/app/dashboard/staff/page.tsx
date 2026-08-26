@@ -2,39 +2,24 @@
 
 import { useState, useMemo } from "react";
 import { motion, type Variants } from "framer-motion";
-import { Plus, Search, Filter, MoreHorizontal, Eye, UserX, Trash2, Shield } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Eye, UserX, Trash2, Shield, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-    Empty,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-    EmptyDescription,
-} from "@/components/ui/empty";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useUsers, useToggleUserStatus } from "@/hooks/use-users";
 import { CreateStaffDialog } from "@/components/dashboard/staff/create-staff-dialog";
+import { EditStaffDialog } from "@/components/dashboard/staff/edit-staff-dialog";
 import { ViewStaffSheet } from "@/components/dashboard/staff/view-staff-sheet";
 import { DeleteStaffAlert } from "@/components/dashboard/staff/delete-staff-alert";
+import { toast } from "sonner";
 import type { UserRole, UserWithRelations } from "@/types/api";
+import { useCurrentUser } from "@/hooks/use-auth";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -66,7 +51,9 @@ export default function StaffPage() {
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [createOpen, setCreateOpen] = useState(false);
     const [viewUserId, setViewUserId] = useState<string | null>(null);
+    const [editUser, setEditUser] = useState<UserWithRelations | null>(null);
     const [deleteUser, setDeleteUser] = useState<UserWithRelations | null>(null);
+    const { data: currentUser, isLoading: isLoadingUser } = useCurrentUser();
 
     const { data: users, isLoading } = useUsers();
     const toggleStatus = useToggleUserStatus();
@@ -99,10 +86,12 @@ export default function StaffPage() {
                         Manage your team members, roles, and permissions
                     </p>
                 </div>
-                <Button onClick={() => setCreateOpen(true)}>
-                    <Plus className="size-4" />
-                    Add Staff
-                </Button>
+                {currentUser?.role !== "staff" && (
+                    <Button size={"sm"} onClick={() => setCreateOpen(true)}>
+                        <Plus className="size-4" />
+                        Add Staff
+                    </Button>
+                )}
             </div>
 
             <Card>
@@ -187,7 +176,6 @@ export default function StaffPage() {
             ) : (
                 <Card>
                     <CardContent className="p-0">
-                        {/* Table header */}
                         <div className="hidden border-b px-6 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground sm:flex">
                             <div className="flex-1">Member</div>
                             <div className="w-28 text-center">Role</div>
@@ -196,7 +184,6 @@ export default function StaffPage() {
                             <div className="w-12" />
                         </div>
 
-                        {/* Table body */}
                         <motion.div
                             variants={containerVariants}
                             initial="hidden"
@@ -212,10 +199,12 @@ export default function StaffPage() {
                                     <motion.div
                                         key={u.id}
                                         variants={rowVariants}
-                                        className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:gap-4"
+                                        className={`
+                                            flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:gap-4
+                                            ${currentUser?.id === u.id ? "bg-muted/50 hover:bg-bg-muted/50" : ""}
+                                        `}
                                     >
-                                        {/* Avatar + name */}
-                                        <div className="flex flex-1 items-center gap-3">
+                                        <div className="flex flex-1 items-center gap-3 hover:underline cursor-pointer" onClick={() => setViewUserId(u.id)}>
                                             <Avatar className="size-9 shrink-0">
                                                 <AvatarFallback className="bg-foreground/5 text-xs font-medium">
                                                     {initials}
@@ -223,7 +212,7 @@ export default function StaffPage() {
                                             </Avatar>
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-medium">
-                                                    {u.firstName} {u.lastName}
+                                                    {currentUser?.id === u.id ? "You" : `${u.firstName} ${u.lastName}`}
                                                 </p>
                                                 <p className="truncate text-xs text-muted-foreground">
                                                     {u.email}
@@ -231,7 +220,6 @@ export default function StaffPage() {
                                             </div>
                                         </div>
 
-                                        {/* Role */}
                                         <div className="w-28 text-center">
                                             <Badge
                                                 variant="secondary"
@@ -241,14 +229,12 @@ export default function StaffPage() {
                                             </Badge>
                                         </div>
 
-                                        {/* Department */}
                                         <div className="w-32 text-center">
                                             <span className="text-xs text-muted-foreground">
                                                 {d?.name ?? "—"}
                                             </span>
                                         </div>
 
-                                        {/* Status */}
                                         <div className="w-24 text-center">
                                             <Badge
                                                 variant="secondary"
@@ -261,46 +247,72 @@ export default function StaffPage() {
                                             </Badge>
                                         </div>
 
-                                        {/* Actions */}
-                                        <div className="w-12 text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-8" />}>
-                                                    <MoreHorizontal className="size-4" />
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-44">
-                                                    <DropdownMenuItem
-                                                        onClick={() => setViewUserId(u.id)}
-                                                    >
-                                                        <Eye className="mr-2 size-4" />
-                                                        View details
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            toggleStatus.mutate({
-                                                                id: u.id,
-                                                                status:
+                                        {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
+                                            <div className="w-12 text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-8" />}>
+                                                        <MoreHorizontal className="size-4" />
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-44">
+                                                        <DropdownMenuItem
+                                                            onClick={() => setViewUserId(u.id)}
+                                                        >
+                                                            <Eye className="mr-2 size-4" />
+                                                            View details
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => setEditUser(item)}
+                                                        >
+                                                            <Pencil className="mr-2 size-4" />
+                                                            Edit
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => {
+                                                                const nextStatus =
                                                                     u.status === "active"
                                                                         ? "inactive"
-                                                                        : "active",
-                                                            })
-                                                        }
-                                                    >
-                                                        <UserX className="mr-2 size-4" />
-                                                        {u.status === "active"
-                                                            ? "Deactivate"
-                                                            : "Activate"}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        onClick={() => setDeleteUser(item)}
-                                                        className="text-destructive focus:text-destructive"
-                                                    >
-                                                        <Trash2 className="mr-2 size-4" />
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
+                                                                        : "active";
+                                                                toggleStatus.mutate(
+                                                                    {
+                                                                        id: u.id,
+                                                                        status: nextStatus,
+                                                                    },
+                                                                    {
+                                                                        onSuccess: () => {
+                                                                            toast.success(
+                                                                                `Staff member set to ${nextStatus === "active"
+                                                                                    ? "Active"
+                                                                                    : "Inactive"
+                                                                                }`
+                                                                            );
+                                                                        },
+                                                                        onError: (err: any) => {
+                                                                            toast.error(
+                                                                                err?.response?.data?.message ||
+                                                                                "Failed to update staff status"
+                                                                            );
+                                                                        },
+                                                                    }
+                                                                );
+                                                            }}
+                                                        >
+                                                            <UserX className="mr-2 size-4" />
+                                                            {u.status === "active"
+                                                                ? "Deactivate"
+                                                                : "Activate"}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={() => setDeleteUser(item)}
+                                                            className="text-destructive focus:text-destructive"
+                                                        >
+                                                            <Trash2 className="mr-2 size-4" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        )}
                                     </motion.div>
                                 );
                             })}
@@ -309,8 +321,12 @@ export default function StaffPage() {
                 </Card>
             )}
 
-            {/* Dialogs / Sheets */}
             <CreateStaffDialog open={createOpen} onOpenChange={setCreateOpen} />
+            <EditStaffDialog
+                user={editUser}
+                open={!!editUser}
+                onOpenChange={(open) => !open && setEditUser(null)}
+            />
             <ViewStaffSheet userId={viewUserId} onClose={() => setViewUserId(null)} />
             <DeleteStaffAlert
                 user={deleteUser}

@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -8,14 +7,14 @@ import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FlipFadeText } from "@/components/ui/flip-fade-text";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { useLogin } from "@/hooks/use-auth";
-import { useAuthStore } from "@/lib/auth-store";
+import { SessionLoader } from "@/components/shared/session-loader";
+import { FloatingNodes } from "@/components/shared/floating-nodes";
+import { useCurrentUser, useLogin, useAuthHydration } from "@/hooks/use-auth";
 
 const loginSchema = z.object({
     email: z.string().email("Enter a valid email address"),
@@ -24,82 +23,19 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const STATIC_NODES = [
-    { id: 0, x: 18, y: 22, size: 4.5, delay: 0.2, duration: 9 },
-    { id: 1, x: 38, y: 16, size: 5.2, delay: 0.8, duration: 11 },
-    { id: 2, x: 68, y: 24, size: 3.8, delay: 0.4, duration: 10 },
-    { id: 3, x: 84, y: 19, size: 4.6, delay: 1.2, duration: 12 },
-    { id: 4, x: 22, y: 52, size: 5.0, delay: 0.5, duration: 8.5 },
-    { id: 5, x: 48, y: 44, size: 6.0, delay: 1.5, duration: 14 },
-    { id: 6, x: 74, y: 56, size: 4.2, delay: 0.9, duration: 10.5 },
-    { id: 7, x: 88, y: 62, size: 3.6, delay: 1.8, duration: 9.5 },
-    { id: 8, x: 16, y: 82, size: 4.8, delay: 0.3, duration: 11.5 },
-    { id: 9, x: 42, y: 86, size: 5.2, delay: 1.1, duration: 13 },
-    { id: 10, x: 66, y: 79, size: 4.0, delay: 0.7, duration: 10 },
-    { id: 11, x: 86, y: 85, size: 5.4, delay: 1.4, duration: 12.5 },
-];
-
-const NODE_CONNECTIONS = [
-    [0, 3], [1, 4], [2, 5], [3, 6], [4, 7], [5, 8],
-    [6, 9], [7, 10], [8, 11], [0, 6], [1, 7], [2, 8],
-];
-
-function FloatingNodes() {
-    return (
-        <div className="absolute inset-0 overflow-hidden opacity-20 dark:opacity-15">
-            <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                {NODE_CONNECTIONS.map(([from, to], i) => (
-                    <motion.line
-                        key={`line-${i}`}
-                        x1={STATIC_NODES[from].x}
-                        y1={STATIC_NODES[from].y}
-                        x2={STATIC_NODES[to].x}
-                        y2={STATIC_NODES[to].y}
-                        stroke="currentColor"
-                        strokeWidth="0.15"
-                        initial={{ pathLength: 0, opacity: 0 }}
-                        animate={{ pathLength: 1, opacity: [0, 0.5, 0.3] }}
-                        transition={{
-                            duration: 3,
-                            delay: i * 0.2,
-                            repeat: Infinity,
-                            repeatType: "reverse",
-                            ease: "easeInOut",
-                        }}
-                    />
-                ))}
-
-                {STATIC_NODES.map((node) => (
-                    <motion.circle
-                        key={node.id}
-                        cx={node.x}
-                        cy={node.y}
-                        r={node.size / 10}
-                        fill="currentColor"
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{
-                            scale: [0.8, 1.2, 0.8],
-                            opacity: [0.3, 0.7, 0.3],
-                        }}
-                        transition={{
-                            duration: node.duration,
-                            delay: node.delay,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                        }}
-                    />
-                ))}
-            </svg>
-        </div>
-    );
-}
-
 export default function LoginPage() {
     const router = useRouter();
-    const token = useAuthStore((s) => s.token);
+    const hydrated = useAuthHydration();
+    const { data: user, isLoading: isUserLoading } = useCurrentUser();
     const [showPassword, setShowPassword] = useState(false);
 
     const loginMutation = useLogin();
+
+    useEffect(() => {
+        if (hydrated && user) {
+            router.replace("/dashboard");
+        }
+    }, [hydrated, user, router]);
 
     const {
         register,
@@ -110,10 +46,6 @@ export default function LoginPage() {
         defaultValues: { email: "", password: "" },
     });
 
-    useEffect(() => {
-        if (token) router.replace("/dashboard");
-    }, [token, router]);
-
     const onSubmit = (values: LoginForm) => {
         loginMutation.mutate(values, {
             onError: (error: any) => {
@@ -123,6 +55,11 @@ export default function LoginPage() {
             },
         });
     };
+
+    // If currently checking existing session, show the session loader
+    if (!hydrated || isUserLoading) {
+        return <SessionLoader />;
+    }
 
     return (
         <div className="flex min-h-screen">

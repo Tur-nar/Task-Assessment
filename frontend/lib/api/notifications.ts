@@ -22,3 +22,9 @@ export const markAllNotificationsAsRead = async (): Promise<ApiResponse<{ messag
   const res = await api.patch<ApiResponse<{ message: string }>>("/api/notifications/read-all");
   return res.data;
 };
+
+export const deleteNotification = async (id: string): Promise<ApiResponse<{ message: string }>> => {
+  const res = await api.delete<ApiResponse<{ message: string }>>(`/api/notifications/${id}`);
+  return res.data;
+};
+

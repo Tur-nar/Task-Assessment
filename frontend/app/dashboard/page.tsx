@@ -1,17 +1,10 @@
 "use client";
-
+import { useMemo } from "react";
 import { motion, type Variants } from "framer-motion";
-import {
-    ClipboardList,
-    CheckCircle2,
-    Clock,
-    AlertTriangle,
-    ArrowUpRight,
-    Calendar,
-} from "lucide-react";
+import { ClipboardList, CheckCircle2, Clock, AlertTriangle, ArrowUpRight, Calendar, PieChart as PieIcon, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/use-auth";
@@ -51,6 +44,21 @@ const priorityConfig: Record<TaskPriority, { label: string; className: string }>
     urgent: { label: "Urgent", className: "text-destructive font-semibold" },
 };
 
+const STATUS_COLORS: Record<string, string> = {
+    "Completed": "#10b981",
+    "In Progress": "#3b82f6",
+    "Not Started": "#94a3b8",
+    "Completed Late": "#f59e0b",
+    "Overdue": "#f43f5e",
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+    "Low": "#64748b",
+    "Medium": "#3b82f6",
+    "High": "#f59e0b",
+    "Urgent": "#f43f5e",
+};
+
 function AnimatedCounter({ value, label }: { value: number; label: string }) {
     return (
         <div>
@@ -83,10 +91,19 @@ function StatsSkeleton() {
     );
 }
 
+function ChartSkeleton({ height = 240 }: { height?: number }) {
+    return <Skeleton className="w-full rounded-xl" style={{ height }} />;
+}
+
 export default function DashboardPage() {
-    const user = useCurrentUser();
+    const { data: user } = useCurrentUser();
     const { data: stats, isLoading: statsLoading } = useTaskStats();
     const { data: recentTasks, isLoading: tasksLoading } = useTasks();
+
+    const role = user?.role;
+    const isStaff = role === "staff";
+    const isSupervisor = role === "supervisor";
+    const isAdmin = role === "super_admin" || role === "admin";
 
     const greeting = () => {
         const hour = new Date().getHours();
@@ -95,13 +112,25 @@ export default function DashboardPage() {
         return "Good evening";
     };
 
+    const overviewSubtitle = isStaff
+        ? "Here's your personal task overview"
+        : isSupervisor
+            ? "Here's your team's task overview (self + direct reports)"
+            : "Here's your organisation-wide task overview";
+
+    const totalTasksDesc = isStaff
+        ? "Your assigned tasks"
+        : isSupervisor
+            ? "Team tasks assigned"
+            : "All organisation tasks";
+
     const statsCards = stats
         ? [
             {
                 title: "Total Tasks",
                 value: stats.total,
                 icon: ClipboardList,
-                description: "All assigned tasks",
+                description: totalTasksDesc,
             },
             {
                 title: "Completed",
@@ -124,6 +153,38 @@ export default function DashboardPage() {
         ]
         : [];
 
+    // ── Status chart data ──
+    const statusChartData = useMemo(() => {
+        if (!stats || stats.total === 0) return [];
+        return [
+            { name: "Completed", value: stats.completed },
+            { name: "In Progress", value: stats.inProgress },
+            { name: "Not Started", value: stats.notStarted },
+            { name: "Completed Late", value: stats.completedLate },
+            { name: "Overdue", value: stats.overdue },
+        ].filter((d) => d.value > 0);
+    }, [stats]);
+
+    // ── Priority chart data ──
+    const priorityChartData = useMemo(() => {
+        if (!recentTasks || recentTasks.length === 0) return [];
+        const counts = { low: 0, medium: 0, high: 0, urgent: 0 };
+        for (const task of recentTasks) {
+            const p = task.t.priority;
+            if (p in counts) counts[p]++;
+        }
+        return [
+            { name: "Low", count: counts.low, fill: PRIORITY_COLORS["Low"] },
+            { name: "Medium", count: counts.medium, fill: PRIORITY_COLORS["Medium"] },
+            { name: "High", count: counts.high, fill: PRIORITY_COLORS["High"] },
+            { name: "Urgent", count: counts.urgent, fill: PRIORITY_COLORS["Urgent"] },
+        ];
+    }, [recentTasks]);
+
+    const completionRate = stats && stats.total > 0
+        ? Math.round(((stats.completed + stats.completedLate) / stats.total) * 100)
+        : 0;
+
     return (
         <motion.div
             variants={containerVariants}
@@ -136,11 +197,10 @@ export default function DashboardPage() {
                     {greeting()}, {user?.firstName ?? "there"}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                    {format(new Date(), "EEEE, MMMM d, yyyy")} — Here&apos;s your overview
+                    {format(new Date(), "EEEE, MMMM d, yyyy")} — {overviewSubtitle}
                 </p>
             </motion.div>
 
-            {/* Stats Grid */}
             {statsLoading ? (
                 <StatsSkeleton />
             ) : (
@@ -170,11 +230,165 @@ export default function DashboardPage() {
                 </motion.div>
             )}
 
+            <motion.div variants={itemVariants} className="grid gap-4 lg:grid-cols-2">
+                <Card>
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2">
+                            <PieIcon className="size-4 text-indigo-500" />
+                            <CardTitle className="text-base font-semibold">
+                                {isStaff ? "Your Task Status" : isSupervisor ? "Team Task Status" : "Task Status Distribution"}
+                            </CardTitle>
+                        </div>
+                        <CardDescription className="text-xs">
+                            {isStaff
+                                ? "Breakdown of your active, pending, and completed tasks"
+                                : isSupervisor
+                                    ? "Breakdown across your personal and supervised tasks"
+                                    : "Breakdown of all active, pending, and completed organisation tasks"}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        {statsLoading ? (
+                            <ChartSkeleton height={240} />
+                        ) : statusChartData.length > 0 ? (
+                            <div className="relative">
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <PieChart>
+                                        <Pie
+                                            data={statusChartData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={88}
+                                            paddingAngle={3}
+                                            dataKey="value"
+                                            animationBegin={0}
+                                            animationDuration={900}
+                                            isAnimationActive
+                                        >
+                                            {statusChartData.map((entry) => (
+                                                <Cell
+                                                    key={entry.name}
+                                                    fill={STATUS_COLORS[entry.name] ?? "#64748b"}
+                                                />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            formatter={(value, name) => [`${value} tasks`, name]}
+                                            contentStyle={{
+                                                background: "var(--popover)",
+                                                border: "1px solid var(--border)",
+                                                borderRadius: "8px",
+                                                fontSize: "12px",
+                                                color: "var(--popover-foreground)",
+                                            }}
+                                        />
+                                        <Legend
+                                            iconType="circle"
+                                            iconSize={8}
+                                            formatter={(val) => (
+                                                <span className="text-xs text-muted-foreground">{val}</span>
+                                            )}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center -translate-y-4">
+                                    <span className="text-2xl font-bold tabular-nums">
+                                        {completionRate}%
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                        Completed
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex h-60 items-center justify-center text-sm text-muted-foreground">
+                                No task data available.
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2">
+                            <BarChart3 className="size-4 text-indigo-500" />
+                            <CardTitle className="text-base font-semibold">
+                                {isStaff ? "Your Task Priorities" : isSupervisor ? "Team Task Priorities" : "Task Priority Distribution"}
+                            </CardTitle>
+                        </div>
+                        <CardDescription className="text-xs">
+                            {isStaff
+                                ? "Your assigned workload categorized by urgency level"
+                                : isSupervisor
+                                    ? "Team workload categorized by urgency level"
+                                    : "Organisation workload categorized by urgency level"}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        {tasksLoading ? (
+                            <ChartSkeleton height={240} />
+                        ) : priorityChartData.some((d) => d.count > 0) ? (
+                            <ResponsiveContainer width="100%" height={240}>
+                                <BarChart
+                                    data={priorityChartData}
+                                    margin={{ left: -12, right: 16, top: 12, bottom: 4 }}
+                                >
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        vertical={false}
+                                        stroke="var(--border)"
+                                    />
+                                    <XAxis
+                                        dataKey="name"
+                                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        allowDecimals={false}
+                                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <Tooltip
+                                        formatter={(val) => [`${val} tasks`, "Count"]}
+                                        contentStyle={{
+                                            background: "var(--popover)",
+                                            border: "1px solid var(--border)",
+                                            borderRadius: "8px",
+                                            fontSize: "12px",
+                                            color: "var(--popover-foreground)",
+                                        }}
+                                        cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                                    />
+                                    <Bar
+                                        dataKey="count"
+                                        radius={[6, 6, 0, 0]}
+                                        animationBegin={0}
+                                        animationDuration={900}
+                                        isAnimationActive
+                                    >
+                                        {priorityChartData.map((entry) => (
+                                            <Cell key={entry.name} fill={entry.fill} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex h-60 items-center justify-center text-sm text-muted-foreground">
+                                No task priority data available.
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </motion.div>
+
             <motion.div variants={itemVariants}>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-4">
                         <CardTitle className="text-base font-semibold">
-                            Recent Tasks
+                            {isStaff ? "Your Recent Tasks" : isSupervisor ? "Team Recent Tasks" : "Recent Tasks"}
                         </CardTitle>
                         <Badge variant="secondary" className="text-xs">
                             {recentTasks?.length ?? 0} tasks
@@ -203,7 +417,6 @@ export default function DashboardPage() {
                                             transition={{ delay: i * 0.05 }}
                                             className="flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-muted/30"
                                         >
-                                            {/* Priority dot */}
                                             <div
                                                 className={`size-2 rounded-full ${task.t.priority === "urgent"
                                                     ? "bg-destructive"
@@ -233,7 +446,6 @@ export default function DashboardPage() {
                                                 {priority.label}
                                             </span>
 
-                                            {/* Deadline */}
                                             {task.t.deadline && (
                                                 <span className="hidden items-center gap-1 text-xs text-muted-foreground md:flex">
                                                     <Calendar className="size-3" />
@@ -241,12 +453,11 @@ export default function DashboardPage() {
                                                 </span>
                                             )}
 
-                                            {/* Status badge */}
                                             <Badge
                                                 variant="secondary"
-                                                className={`shrink-0 text-[10px] ${status.className}`}
+                                                className={`shrink-0 text-[10px] ${status?.className}`}
                                             >
-                                                {status.label}
+                                                {status?.label}
                                             </Badge>
 
                                             <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground/40" />

@@ -26,16 +26,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NotificationPopover } from "@/components/dashboard/notification-popover";
 import { ROUTE_LABELS } from "@/constants/routes";
 import { useCurrentUser, useLogout } from "@/hooks/use-auth";
-import { useUnreadNotificationCount } from "@/hooks/use-notifications";
 
 export function DashboardHeader() {
   const pathname = usePathname();
-  const user = useCurrentUser();
+  const { data: user } = useCurrentUser();
   const logout = useLogout();
 
-  // Build breadcrumb segments from the pathname
   const segments = pathname
     .split("/")
     .filter(Boolean)
@@ -44,9 +43,6 @@ export function DashboardHeader() {
       href: "/" + arr.slice(0, index + 1).join("/"),
       isLast: index === arr.length - 1,
     }));
-
-  // Fetch unread notification count
-  const { data: unreadCount } = useUnreadNotificationCount();
 
   const initials = user
     ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
@@ -74,25 +70,9 @@ export function DashboardHeader() {
       </Breadcrumb>
 
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="relative size-9 rounded-full">
-          <Bell className="size-4" />
-          <AnimatePresence>
-            {typeof unreadCount === "number" && unreadCount > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground"
-              >
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </Button>
+        <NotificationPopover />
 
         <ThemeToggle />
-
-        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" className="relative size-9 rounded-full" />}>
             <Avatar className="size-8">

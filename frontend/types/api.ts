@@ -142,6 +142,58 @@ export interface TaskWithRelations {
   d?: { id: string; name: string } | null;
 }
 
+export interface TaskDependencyInfo {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  priority?: TaskPriority;
+}
+
+export interface TaskDetail extends TaskWithRelations {
+  dependencies?: TaskDependencyInfo[];
+  dependents?: TaskDependencyInfo[];
+  ready?: boolean;
+}
+
+export interface Subtask {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  order: number;
+}
+
+export interface TaskComment {
+  c: {
+    id: string;
+    content: string;
+    createdAt: string;
+  };
+  author: Pick<User, "id" | "firstName" | "lastName" | "email">;
+  replies?: {
+    comment: { id: string; content: string; createdAt: string };
+    author: Pick<User, "id" | "firstName" | "lastName" | "email">;
+  }[];
+}
+
+export interface CreateTaskPayload {
+  title: string;
+  description?: string;
+  assignedToId: string;
+  departmentId?: string;
+  priority?: TaskPriority;
+  deadline: string;
+  dependsOnTaskIds?: string[];
+}
+
+export interface UpdateTaskPayload {
+  title?: string;
+  description?: string;
+  priority?: TaskPriority;
+  deadline?: string;
+  assignedToId?: string;
+  departmentId?: string;
+}
+
 export interface TaskStats {
   total: number;
   completed: number;

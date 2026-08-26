@@ -85,7 +85,13 @@ export class PerformanceService {
     });
   }
 
-  async getAll() {
+  async getAll(caller?: { id: string; role: string }) {
+    if (caller?.role === 'supervisor' && caller?.id) {
+      return this.fetchRawCounts(
+        `AND (u.id = $callerId OR EXISTS { MATCH (u)-[:SUPERVISED_BY]->(:User {id: $callerId}) })`,
+        { callerId: caller.id },
+      );
+    }
     return this.fetchRawCounts('', {});
   }
 
@@ -94,7 +100,14 @@ export class PerformanceService {
     return results[0] ?? null;
   }
 
-  async getByDepartment(departmentId: string) {
+  async getByDepartment(departmentId: string, caller?: { id: string; role: string }) {
+    if (caller?.role === 'supervisor' && caller?.id) {
+      return this.fetchRawCounts(
+        `AND (u.id = $callerId OR EXISTS { MATCH (u)-[:SUPERVISED_BY]->(:User {id: $callerId}) })
+         AND EXISTS { MATCH (u)-[:MEMBER_OF]->(:Department {id: $departmentId}) }`,
+        { callerId: caller.id, departmentId },
+      );
+    }
     return this.fetchRawCounts(
       `AND EXISTS { MATCH (u)-[:MEMBER_OF]->(:Department {id: $departmentId}) }`,
       { departmentId },

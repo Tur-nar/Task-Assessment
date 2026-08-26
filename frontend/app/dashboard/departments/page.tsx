@@ -2,53 +2,22 @@
 
 import { useState, useMemo } from "react";
 import { motion, type Variants } from "framer-motion";
-import {
-  Plus,
-  Search,
-  Building2,
-  Users,
-  ClipboardList,
-  CheckCircle2,
-  MoreHorizontal,
-  Eye,
-  Pencil,
-  Trash2,
-  Cpu,
-  Layers,
-  Sparkles,
-  Shield,
-  Briefcase,
-  FolderGit2,
-  BarChart2,
-  TrendingUp,
-} from "lucide-react";
-
+import { Plus, Search, Building2, Users, ClipboardList, MoreHorizontal, Eye, Pencil, Trash2, Cpu, Layers, Sparkles, Briefcase, FolderGit2, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Empty,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-  EmptyDescription,
-} from "@/components/ui/empty";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useDepartments } from "@/hooks/use-departments";
 import { CreateDepartmentDialog } from "@/components/dashboard/departments/create-department-dialog";
 import { EditDepartmentDialog } from "@/components/dashboard/departments/edit-department-dialog";
 import { ViewDepartmentSheet } from "@/components/dashboard/departments/view-department-sheet";
 import { DeleteDepartmentAlert } from "@/components/dashboard/departments/delete-department-alert";
 import type { DepartmentWithStats } from "@/types/api";
+import { useCurrentUser } from "@/hooks/use-auth";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -67,7 +36,6 @@ const cardVariants: Variants = {
   },
 };
 
-// Curated palette of icons and colors for department cards
 const DEPARTMENT_THEMES = [
   {
     icon: Cpu,
@@ -127,6 +95,7 @@ export default function DepartmentsPage() {
   const [viewDeptId, setViewDeptId] = useState<string | null>(null);
   const [editDept, setEditDept] = useState<DepartmentWithStats | null>(null);
   const [deleteDept, setDeleteDept] = useState<DepartmentWithStats | null>(null);
+  const { data: currentUser } = useCurrentUser();
 
   const { data: departments, isLoading } = useDepartments();
 
@@ -149,7 +118,6 @@ export default function DepartmentsPage() {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="space-y-6"
     >
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Departments</h1>
@@ -157,13 +125,14 @@ export default function DepartmentsPage() {
             Manage organizational divisions, department heads, and task allocations
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="gap-2">
-          <Plus className="size-4" />
-          Add Department
-        </Button>
+        {(currentUser?.role === "super_admin" || currentUser?.role === "admin") && (
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Add Department
+          </Button>
+        )}
       </div>
 
-      {/* Search Filter */}
       <Card>
         <CardContent className="p-4">
           <div className="relative flex-1">
@@ -178,7 +147,6 @@ export default function DepartmentsPage() {
         </CardContent>
       </Card>
 
-      {/* Department Cards Grid */}
       {isLoading ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
@@ -241,22 +209,17 @@ export default function DepartmentsPage() {
 
             return (
               <motion.div key={d.id} variants={cardVariants}>
-                <Card className="group relative flex h-full flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md hover:border-foreground/20 hover:-translate-y-1">
-                  {/* Subtle gradient banner */}
+                <Card className="group relative flex h-full flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md hover:border-foreground/20">
                   <div
-                    className={`absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${theme.gradientClass} opacity-60 pointer-events-none`}
+                    className={`absolute inset-x-0 top-0 h-24 bg-linear-to-b ${theme.gradientClass} opacity-60 pointer-events-none`}
                   />
-
                   <CardHeader className="relative pb-3">
                     <div className="flex items-start justify-between gap-2">
-                      {/* Colored icon box */}
                       <div
                         className={`flex aspect-square size-11 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-105 ${theme.colorClass}`}
                       >
                         <Icon className="size-5" />
                       </div>
-
-                      {/* Card Action Menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
@@ -274,18 +237,22 @@ export default function DepartmentsPage() {
                             <Eye className="mr-2 size-4" />
                             View details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setEditDept(dept)}>
-                            <Pencil className="mr-2 size-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setDeleteDept(dept)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 size-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {(currentUser?.role === "super_admin" || currentUser?.role === "admin") && (
+                            <>
+                              <DropdownMenuItem onClick={() => setEditDept(dept)}>
+                                <Pencil className="mr-2 size-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteDept(dept)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 size-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -301,7 +268,6 @@ export default function DepartmentsPage() {
                   </CardHeader>
 
                   <CardContent className="space-y-4 pt-1">
-                    {/* Stats Grid */}
                     <div className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/20 p-2.5">
                       <div className="flex items-center gap-2">
                         <Users className="size-3.5 text-muted-foreground" />
@@ -313,13 +279,12 @@ export default function DepartmentsPage() {
                       <div className="flex items-center gap-2">
                         <ClipboardList className="size-3.5 text-muted-foreground" />
                         <div>
-                          <p className="text-xs font-semibold">{totalTasks}</p>
+                          <p className="text-xs font-semibold">{completedTasks}/{totalTasks}</p>
                           <p className="text-[10px] text-muted-foreground">Tasks</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Completion rate bar */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-[11px] text-muted-foreground">
@@ -337,7 +302,6 @@ export default function DepartmentsPage() {
                       </div>
                     </div>
 
-                    {/* Department Head Footer */}
                     <div className="flex items-center justify-between border-t pt-3 text-xs">
                       <span className="text-[11px] text-muted-foreground">
                         Department Head:
@@ -349,7 +313,7 @@ export default function DepartmentsPage() {
                               {headInitials}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-medium truncate max-w-[110px]">
+                          <span className="font-medium truncate max-w-27.5">
                             {head.firstName} {head.lastName}
                           </span>
                         </div>
@@ -367,7 +331,6 @@ export default function DepartmentsPage() {
         </motion.div>
       )}
 
-      {/* Dialogs and Sheets */}
       <CreateDepartmentDialog
         open={createOpen}
         onOpenChange={setCreateOpen}

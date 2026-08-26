@@ -5,25 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
-
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateDepartment } from "@/hooks/use-departments";
 import { useSupervisors } from "@/hooks/use-users";
 
@@ -130,8 +116,7 @@ export function CreateDepartmentDialog({
             )}
           </div>
 
-          {/* Department Head */}
-          <div className="space-y-1.5">
+          {/* <div className="space-y-1.5">
             <Label className="text-xs">Head of Department (Optional)</Label>
             <Select
               value={selectedHeadId}
@@ -148,7 +133,7 @@ export function CreateDepartmentDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </div> */}
 
           <DialogFooter className="pt-2">
             <Button

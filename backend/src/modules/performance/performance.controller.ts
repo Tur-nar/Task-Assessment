@@ -13,8 +13,8 @@ export class PerformanceController {
   @Get()
   @Roles('super_admin', 'admin', 'supervisor')
   @ResponseMessage('Performance analytics retrieved successfully')
-  getAll() {
-    return this.performance.getAll();
+  getAll(@Req() req: any) {
+    return this.performance.getAll({ id: req.user.id, role: req.user.role });
   }
 
   @Get('me')
@@ -26,7 +26,7 @@ export class PerformanceController {
   @Get('department/:id')
   @Roles('super_admin', 'admin', 'supervisor')
   @ResponseMessage('Department performance retrieved successfully')
-  getByDepartment(@Param('id') id: string) {
-    return this.performance.getByDepartment(id);
+  getByDepartment(@Param('id') id: string, @Req() req: any) {
+    return this.performance.getByDepartment(id, { id: req.user.id, role: req.user.role });
   }
 }

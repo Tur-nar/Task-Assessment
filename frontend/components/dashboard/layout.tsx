@@ -1,22 +1,21 @@
 "use client";
-
 import { AnimatePresence } from "framer-motion";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { SessionLoader } from "@/components/shared/session-loader";
-import { useAuthHydration, useRequireAuth } from "@/hooks/use-auth";
+import { useRequireAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const hydrated = useAuthHydration();
-  const { isAuthenticated } = useRequireAuth();
+  const { isAuthenticated, isLoading } = useRequireAuth();
+  const router = useRouter();
 
-  // Show session loader while hydrating
-  if (!hydrated) {
+  if (isLoading) {
     return (
       <AnimatePresence>
         <SessionLoader />
@@ -24,9 +23,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  // Don't render layout if not authenticated (useRequireAuth redirects)
   if (!isAuthenticated) {
-    return null;
+    router.push("/login");
   }
 
   return (

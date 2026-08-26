@@ -6,6 +6,7 @@ import {
   getNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteNotification,
 } from "@/lib/api/notifications";
 
 export function useUnreadNotificationCount() {
@@ -39,6 +40,17 @@ export function useMarkAllNotificationsAsRead() {
 
   return useMutation({
     mutationFn: () => markAllNotificationsAsRead(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteNotification(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: notificationKeys.all });
     },

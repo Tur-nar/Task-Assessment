@@ -2,61 +2,25 @@
 
 import { useState, useMemo } from "react";
 import { motion, type Variants } from "framer-motion";
-import {
-  Plus,
-  Search,
-  Shield,
-  Users,
-  Building2,
-  MoreHorizontal,
-  Eye,
-  ArrowRightLeft,
-  UserX,
-  UserCheck,
-  Trash2,
-  Filter,
-} from "lucide-react";
+import { Plus, Search, Shield, Users, Building2, MoreHorizontal, Eye, ArrowRightLeft, UserX, UserCheck, Trash2, Filter, Pencil } from "lucide-react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Empty,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-  EmptyDescription,
-} from "@/components/ui/empty";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useSupervisors, useToggleUserStatus, useDepartments } from "@/hooks/use-users";
 import { CreateSupervisorDialog } from "@/components/dashboard/supervisors/create-supervisor-dialog";
+import { EditSupervisorDialog } from "@/components/dashboard/supervisors/edit-supervisor-dialog";
 import { ReassignTeamDialog } from "@/components/dashboard/supervisors/reassign-team-dialog";
 import { ViewSupervisorSheet } from "@/components/dashboard/supervisors/view-supervisor-sheet";
 import { DeleteSupervisorAlert } from "@/components/dashboard/supervisors/delete-supervisor-alert";
 import type { SupervisorWithTeam } from "@/types/api";
+import { useCurrentUser } from "@/hooks/use-auth";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -75,7 +39,6 @@ const cardVariants: Variants = {
   },
 };
 
-// Subtle color accents for cards
 const AVATAR_ACCENTS = [
   "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
   "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
@@ -90,11 +53,13 @@ export default function SupervisorsPage() {
   const [deptFilter, setDeptFilter] = useState("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [viewSupervisor, setViewSupervisor] = useState<SupervisorWithTeam | null>(null);
+  const [editSupervisor, setEditSupervisor] = useState<SupervisorWithTeam | null>(null);
   const [reassignSupervisor, setReassignSupervisor] = useState<SupervisorWithTeam | null>(null);
   const [deleteSupervisor, setDeleteSupervisor] = useState<SupervisorWithTeam | null>(null);
-
   const { data: supervisors, isLoading } = useSupervisors();
   const { data: departments } = useDepartments();
+  const { data: currentUser } = useCurrentUser();
+
   const toggleStatus = useToggleUserStatus();
 
   const filtered = useMemo(() => {
@@ -143,7 +108,6 @@ export default function SupervisorsPage() {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="space-y-6"
     >
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Supervisors</h1>
@@ -151,13 +115,14 @@ export default function SupervisorsPage() {
             Manage team leads, reporting relationships, and direct reports
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="gap-2">
-          <Plus className="size-4" />
-          Add Supervisor
-        </Button>
+        {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
+          <Button size={"sm"} onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Add Supervisor
+          </Button>
+        )}
       </div>
 
-      {/* Search & Department Filters */}
       <Card>
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
           <div className="relative flex-1">
@@ -170,7 +135,7 @@ export default function SupervisorsPage() {
             />
           </div>
           <Select value={deptFilter} onValueChange={(v) => setDeptFilter(v ?? "all")}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-45">
               <Filter className="mr-2 size-3.5 text-muted-foreground" />
               <SelectValue placeholder="Department" />
             </SelectTrigger>
@@ -186,7 +151,6 @@ export default function SupervisorsPage() {
         </CardContent>
       </Card>
 
-      {/* Supervisors Cards Grid */}
       {isLoading ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
@@ -242,7 +206,7 @@ export default function SupervisorsPage() {
 
             return (
               <motion.div key={u.id} variants={cardVariants}>
-                <Card className="group relative flex h-full flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md hover:border-foreground/20 hover:-translate-y-1">
+                <Card className="group relative flex h-full flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md hover:border-foreground/20">
                   <CardHeader className="relative pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
@@ -261,7 +225,6 @@ export default function SupervisorsPage() {
                         </div>
                       </div>
 
-                      {/* Action Menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
@@ -279,36 +242,43 @@ export default function SupervisorsPage() {
                             <Eye className="mr-2 size-4" />
                             View profile & tree
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setReassignSupervisor(sup)}>
-                            <ArrowRightLeft className="mr-2 size-4" />
-                            Reassign team
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(sup)}>
-                            {u.status === "active" ? (
-                              <>
-                                <UserX className="mr-2 size-4" />
-                                Deactivate
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="mr-2 size-4" />
-                                Activate
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setDeleteSupervisor(sup)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 size-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
+                            <>
+                              <DropdownMenuItem onClick={() => setEditSupervisor(sup)}>
+                                <Pencil className="mr-2 size-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setReassignSupervisor(sup)}>
+                                <ArrowRightLeft className="mr-2 size-4" />
+                                Reassign team
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleToggleStatus(sup)}>
+                                {u.status === "active" ? (
+                                  <>
+                                    <UserX className="mr-2 size-4" />
+                                    Deactivate
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="mr-2 size-4" />
+                                    Activate
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteSupervisor(sup)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 size-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
 
-                    {/* Department & Status Pills */}
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       {d ? (
                         <Badge variant="secondary" className="gap-1 text-[10px]">
@@ -322,11 +292,10 @@ export default function SupervisorsPage() {
                       )}
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] ${
-                          u.status === "active"
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                            : "bg-muted text-muted-foreground"
-                        }`}
+                        className={`text-[10px] ${u.status === "active"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "bg-muted text-muted-foreground"
+                          }`}
                       >
                         {u.status === "active" ? "Active" : "Inactive"}
                       </Badge>
@@ -334,7 +303,6 @@ export default function SupervisorsPage() {
                   </CardHeader>
 
                   <CardContent className="space-y-4 pt-1">
-                    {/* Team Preview Box */}
                     <div className="space-y-2 rounded-lg border bg-muted/20 p-2.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
@@ -352,7 +320,7 @@ export default function SupervisorsPage() {
                             {teamMembers.slice(0, 5).map((member) => (
                               <Avatar
                                 key={member.id}
-                                className="inline-block size-6 border-2 border-background ring-1 ring-border"
+                                className={`inline-block size-6 border-2 border-background ring-1 ring-border ${accentClass}`}
                               >
                                 <AvatarFallback className="bg-foreground/5 text-[9px] font-medium">
                                   {member.firstName.charAt(0)}
@@ -402,10 +370,14 @@ export default function SupervisorsPage() {
         </motion.div>
       )}
 
-      {/* Dialogs and Sheets */}
       <CreateSupervisorDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+      />
+      <EditSupervisorDialog
+        supervisor={editSupervisor}
+        open={!!editSupervisor}
+        onOpenChange={(open) => !open && setEditSupervisor(null)}
       />
       <ReassignTeamDialog
         supervisor={reassignSupervisor}

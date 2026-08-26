@@ -1,3 +1,8 @@
+export const authKeys = {
+  all: ["auth"] as const,
+  me: () => [...authKeys.all, "me"] as const,
+};
+
 export const userKeys = {
   all: ["users"] as const,
   list: (filters?: Record<string, string>) => [...userKeys.all, "list", filters] as const,
@@ -12,6 +17,8 @@ export const taskKeys = {
   list: (filters?: Record<string, string>) => [...taskKeys.all, "list", filters] as const,
   detail: (id: string) => [...taskKeys.all, "detail", id] as const,
   stats: () => [...taskKeys.all, "stats"] as const,
+  subtasks: (taskId: string) => [...taskKeys.all, "subtasks", taskId] as const,
+  comments: (taskId: string) => [...taskKeys.all, "comments", taskId] as const,
 };
 
 export const departmentKeys = {

@@ -181,7 +181,6 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                                 <SelectItem value="staff">Staff</SelectItem>
                                 <SelectItem value="supervisor">Supervisor</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="super_admin">Super Admin</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

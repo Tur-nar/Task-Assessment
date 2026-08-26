@@ -30,7 +30,6 @@ export function SessionLoader() {
         textClassName="text-2xl md:text-4xl font-bold tracking-[0.3em] text-foreground"
       />
 
-      {/* Pulsing dots */}
       <div className="flex items-center gap-2">
         {[0, 1, 2].map((i) => (
           <motion.div

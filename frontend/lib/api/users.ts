@@ -51,7 +51,7 @@ export const createUser = async (payload: CreateUserPayload): Promise<ApiRespons
 };
 
 export const updateUser = async (id: string, payload: UpdateUserPayload): Promise<ApiResponse<UserDetail>> => {
-  const res = await api.patch<ApiResponse<UserDetail>>(`/api/users/${id}`, payload);
+  const res = await api.put<ApiResponse<UserDetail>>(`/api/users/${id}`, payload);
   return res.data;
 };
 

@@ -94,6 +94,7 @@ export function CreateSupervisorDialog({
       }
     );
   };
+  const allAdmin = admins?.filter((admin) => admin.u.role === "admin" || admin.u.role === "super_admin")
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -184,7 +185,9 @@ export function CreateSupervisorDialog({
               onValueChange={(v) => setValue("departmentId", v ? String(v) : undefined)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select department" />
+                <SelectValue placeholder="Select department">
+                  {departments?.find((d) => d.d.id === selectedDeptId)?.d.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {departments?.map((dept) => (
@@ -196,7 +199,6 @@ export function CreateSupervisorDialog({
             </Select>
           </div>
 
-          {/* Reporting Manager */}
           <div className="space-y-1.5">
             <Label className="text-xs">Reports To (Admin Manager)</Label>
             <Select
@@ -204,10 +206,12 @@ export function CreateSupervisorDialog({
               onValueChange={(v) => setValue("supervisorId", v ? String(v) : undefined)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select reporting manager" />
+                <SelectValue placeholder="Select reporting manager">
+                  {admins?.find((d) => d.u.id === selectedSupId)?.u.firstName} {admins?.find((d) => d.u.id === selectedSupId)?.u.lastName} ({admins?.find((d) => d.u.id === selectedSupId)?.u.email})
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {admins?.map((admin) => (
+                {allAdmin?.map((admin) => (
                   <SelectItem key={admin.u.id} value={admin.u.id}>
                     {admin.u.firstName} {admin.u.lastName} ({admin.u.email})
                   </SelectItem>

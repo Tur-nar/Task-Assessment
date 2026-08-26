@@ -85,9 +85,10 @@ export class Neo4jService implements OnModuleInit, OnModuleDestroy {
       return value.toString();
     }
     if (Array.isArray(value)) return value.map((v) => this.unwrap(v));
-    if (value.properties) {
+    if (typeof value === 'object') {
+      const source = value.properties ? value.properties : value;
       const props: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(value.properties)) {
+      for (const [k, v] of Object.entries(source)) {
         props[k] = this.unwrap(v);
       }
       return props;

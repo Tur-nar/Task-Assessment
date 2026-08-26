@@ -1,84 +1,67 @@
 "use client";
+import React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  LayoutDashboard,
-  Users,
-  ClipboardList,
-  Building2,
-  Shield,
-  BarChart3,
-  Target,
-  LogOut,
-} from "lucide-react";
-
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarSeparator,
-} from "@/components/ui/sidebar";
+import { LayoutDashboard, Users, ClipboardList, Building2, Shield, BarChart3, Target, LogOut, } from "lucide-react";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/constants/routes";
 import { useCurrentUser, useLogout } from "@/hooks/use-auth";
 
-const mainNav = [
-  {
-    title: "Dashboard",
-    href: ROUTES.dashboard.root,
-    icon: LayoutDashboard,
-    exact: true,
-  },
-  {
-    title: "Staff",
-    href: ROUTES.dashboard.staff,
-    icon: Users,
-  },
-  {
-    title: "Tasks",
-    href: ROUTES.dashboard.tasks,
-    icon: ClipboardList,
-    disabled: true,
-  },
-  {
-    title: "Departments",
-    href: ROUTES.dashboard.departments,
-    icon: Building2,
-  },
-  {
-    title: "Supervisors",
-    href: ROUTES.dashboard.supervisors,
-    icon: Shield,
-  },
-];
+const mainNav: {
+  title: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+  disabled?: boolean;
+}[] = [
+    {
+      title: "Dashboard",
+      href: ROUTES.dashboard.root,
+      icon: LayoutDashboard,
+      exact: true,
+    },
+    {
+      title: "Staff",
+      href: ROUTES.dashboard.staff,
+      icon: Users,
+    },
+    {
+      title: "Tasks",
+      href: ROUTES.dashboard.tasks,
+      icon: ClipboardList,
+    },
+    {
+      title: "Departments",
+      href: ROUTES.dashboard.departments,
+      icon: Building2,
+    },
+    {
+      title: "Supervisors",
+      href: ROUTES.dashboard.supervisors,
+      icon: Shield,
+    },
+  ];
 
-const analyticsNav = [
-  {
-    title: "Performance",
-    href: ROUTES.dashboard.performance,
-    icon: BarChart3,
-    disabled: true,
-  },
-  {
-    title: "Targets",
-    href: ROUTES.dashboard.targets,
-    icon: Target,
-    disabled: true,
-  },
-];
+const analyticsNav: {
+  title: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+  disabled?: boolean;
+}[] = [
+    {
+      title: "Performance",
+      href: ROUTES.dashboard.performance,
+      icon: BarChart3,
+    },
+  ];
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const user = useCurrentUser();
+  const { data: user } = useCurrentUser();
   const logout = useLogout();
 
   const isActive = (href: string, exact?: boolean) => {
@@ -179,24 +162,51 @@ export function AppSidebar() {
           <SidebarGroupLabel>Analytics</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {analyticsNav.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    tooltip={item.title}
-                    disabled={item.disabled}
-                    className="opacity-40 cursor-not-allowed"
-                  >
-                    <item.icon className="size-4" />
-                    <span>{item.title}</span>
-                    <Badge
-                      variant="secondary"
-                      className="ml-auto text-[10px] px-1.5 py-0"
-                    >
-                      Soon
-                    </Badge>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {analyticsNav.map((item) => {
+                const active = isActive(item.href, item.exact);
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    {item.disabled ? (
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        disabled
+                        className="opacity-40 cursor-not-allowed"
+                      >
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                        <Badge
+                          variant="secondary"
+                          className="ml-auto text-[10px] px-1.5 py-0"
+                        >
+                          Soon
+                        </Badge>
+                      </SidebarMenuButton>
+                    ) : (
+                      <SidebarMenuButton
+                        render={<Link href={item.href} />}
+                        isActive={active}
+                        tooltip={item.title}
+                        className="relative"
+                      >
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                        {active && (
+                          <motion.div
+                            layoutId="sidebar-active"
+                            className="absolute inset-0 rounded-md bg-sidebar-accent"
+                            style={{ zIndex: -1 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 350,
+                              damping: 30,
+                            }}
+                          />
+                        )}
+                      </SidebarMenuButton>
+                    )}
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

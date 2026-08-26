@@ -3,8 +3,8 @@
 import React from "react";
 
 import { ThemeProvider } from "@/providers/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import QueryProvider from "@/providers/query-provider";
-import { Toaster } from "sonner";
 
 type ProvidersProps = {
     children: React.ReactNode;
@@ -20,7 +20,7 @@ export default function Providers({ children }: ProvidersProps) {
         >
             <QueryProvider>
                 {children}
-                <Toaster position="top-right" />
+                <Toaster position="top-right" closeButton />
             </QueryProvider>
         </ThemeProvider>
     );
