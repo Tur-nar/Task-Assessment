@@ -88,7 +88,6 @@ const Letter = memo(function Letter({
     )
 })
 
-// Memoized Word component for performance
 const Word = memo(function Word({
     text,
     staggerDelay,
@@ -151,7 +150,6 @@ export function FlipFadeText({
 }: FlipFadeTextProps) {
     const [index, setIndex] = useState(0)
 
-    // Memoize the interval callback
     const updateIndex = useCallback(() => {
         setIndex((prev) => (prev + 1) % words.length)
     }, [words.length])
@@ -161,11 +159,10 @@ export function FlipFadeText({
         return () => clearInterval(timer)
     }, [updateIndex, interval])
 
-    // Memoize the current word
     const currentWord = useMemo(() => words[index], [words, index])
 
     return (
-        <div className={cn("flex items-center justify-center min-h-[200px]", className)}>
+        <div className={cn("flex items-center justify-center min-h-50", className)}>
             <div className="relative flex items-center justify-center" style={{ perspective: "1000px" }}>
                 <AnimatePresence mode="wait">
                     <Word

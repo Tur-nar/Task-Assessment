@@ -173,10 +173,11 @@ function TaskCard1() {
             <foreignObject key={node.id} x={node.x - w / 2} y={node.y - h / 2} width={w} height={h} className="overflow-visible">
               <div className="w-full h-full flex items-center justify-center">
                 <div
-                  className={`w-full h-full rounded-[14px] border flex flex-col items-center justify-center text-white transition-all duration-300 ${colors.buttonBg} ${colors.buttonBorder} ${isActive
+                  className={`w-full h-full rounded-[14px] border flex flex-col items-center justify-center text-white transition-all duration-300 ${colors.buttonBg} ${colors.buttonBorder} ${
+                    isActive
                       ? "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),inset_4px_4px_0_0_rgba(255,255,255,0.06),inset_6px_6px_0_0_rgba(255,255,255,0.04),inset_8px_8px_0_0_rgba(255,255,255,0.02),0_1px_2px_0_rgba(0,0,0,0.08),0_2px_4px_0_rgba(0,0,0,0.06),0_4px_6px_0_rgba(0,0,0,0.04),0_6px_8px_0_rgba(0,0,0,0.02)] scale-105"
                       : "opacity-40 shadow-[0_1px_2px_0_rgba(0,0,0,0.06)]"
-                    }`}
+                  }`}
                 >
                   <div className="mb-0.5 flex items-center justify-center">
                     <node.icon className="w-5 h-5" weight="fill" />
@@ -453,10 +454,11 @@ function TaskCard4() {
             return (
               <div key={dept.name} className="flex items-center gap-3 group relative">
                 <div
-                  className={`relative flex shrink-0 items-center justify-center w-9 h-9 rounded-[12px] border transition-all duration-500 ${isActive
+                  className={`relative flex shrink-0 items-center justify-center w-9 h-9 rounded-[12px] border transition-all duration-500 ${
+                    isActive
                       ? `shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),inset_4px_4px_0_0_rgba(255,255,255,0.06),inset_6px_6px_0_0_rgba(255,255,255,0.04),inset_8px_8px_0_0_rgba(255,255,255,0.02),0_1px_2px_0_rgba(0,0,0,0.08),0_2px_4px_0_rgba(0,0,0,0.06),0_4px_6px_0_rgba(0,0,0,0.04),0_6px_8px_0_rgba(0,0,0,0.02)] text-white ${c.buttonBg} ${c.buttonBorder} scale-105`
                       : "dark:bg-neutral-950/80 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)] bg-white border-transparent text-[#A1A1A1]"
-                    }`}
+                  }`}
                 >
                   <Icon size={16} weight={isActive ? "fill" : "regular"} className="relative z-10" />
                 </div>

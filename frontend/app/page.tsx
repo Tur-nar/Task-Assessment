@@ -1,10 +1,8 @@
 "use client";
-
 import { useRef } from "react";
 import Link from "next/link";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { ArrowRight, GitBranch, Lightning, Eye } from "@phosphor-icons/react";
-
 import { Button } from "@/components/ui/button";
 import { FlipFadeText } from "@/components/ui/flip-fade-text";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -66,29 +64,13 @@ const GRAPH_FEATURES = [
     },
 ];
 
-/* ──────────────────────────────────────────────
-   Main Landing Page
-────────────────────────────────────────────── */
 export default function LandingPage() {
-    const heroRef = useRef(null);
-    const { scrollYProgress } = useScroll({
-        target: heroRef,
-        offset: ["start start", "end start"],
-    });
-
-    const navBorderOpacity = useTransform(scrollYProgress, [0, 0.1], [0, 1]);
-    const heroParallaxY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-
     return (
         <div className="min-h-screen flex flex-col bg-background text-foreground">
 
-            <motion.nav
-                className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-transparent"
+            <nav
+                className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/40"
             >
-                <motion.div
-                    className="absolute bottom-0 left-0 right-0 h-px bg-border"
-                    style={{ opacity: navBorderOpacity }}
-                />
                 <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
                     <Link href="/" className="flex items-center gap-2">
                         <span className="text-sm font-medium tracking-[0.3em] uppercase text-foreground/80">
@@ -106,19 +88,12 @@ export default function LandingPage() {
                         </Link>
                     </div>
                 </div>
-            </motion.nav>
-
-            {/* ════════════════════════════════════════
-         Section 2 — Hero
-      ════════════════════════════════════════ */}
+            </nav>
             <section
-                ref={heroRef}
                 className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
             >
-                {/* Background: Floating graph nodes */}
-                <motion.div className="absolute inset-0" style={{ y: heroParallaxY }}>
-                    <FloatingNodes opacity={0.25} />
-                </motion.div>
+                {/* Background: Floating graph nodes (pure CSS animation) */}
+                <FloatingNodes opacity={0.25} />
 
                 <div className="relative z-10 flex flex-col items-center gap-6 px-6 max-w-4xl mx-auto text-center">
                     <motion.h2
@@ -175,7 +150,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Bottom fade */}
-                <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background to-transparent" />
             </section>
 
             {/* ════════════════════════════════════════
@@ -227,7 +202,7 @@ export default function LandingPage() {
                                 >
                                     {/* Gradient background on hover */}
                                     <div
-                                        className={`absolute inset-0 rounded-2xl bg-gradient-to-b ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+                                        className={`absolute inset-0 rounded-2xl bg-linear-to-b ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
                                     />
 
                                     <div className="relative z-10">
