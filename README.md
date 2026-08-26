@@ -1,4 +1,4 @@
-# TaskManager Pro (CognoDB Edition)
+# TaskManager Pro
 
 > A task and team management app, built with NestJS, Next.js 16, and CognoDB (a graph database that speaks openCypher over the Bolt protocol).
 
