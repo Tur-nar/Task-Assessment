@@ -1,4 +1,4 @@
-# TaskManager Pro — CognoDB Edition
+# TaskManager Pro — CognoDB
 
 ## 1. Why a graph database (README seed)
 
