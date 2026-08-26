@@ -310,6 +310,20 @@ When the backend starts against an empty CognoDB database, it automatically crea
 
 ---
 
+## Ui Screenshots
+
+<img width="2724" height="1846" alt="landing-page" src="https://github.com/user-attachments/assets/629f9e4a-4daf-4d7a-bc75-776baa6be6a8" />
+
+---
+
+<img width="2834" height="1846" alt="login" src="https://github.com/user-attachments/assets/d345ce81-87b8-40d9-863f-e2df14a1962f" />
+
+---
+
+<img width="2834" height="1846" alt="dashboard" src="https://github.com/user-attachments/assets/14666762-8fd4-45cc-8dff-11212fafdfbc" />
+
+---
+
 ## License
 
 This project is submitted for the **Wexa AI Candidate Take-Home Assessment**. Built by Adebowale Ademuyiwa.
