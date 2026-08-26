@@ -207,8 +207,12 @@ async function main() {
 
     console.log('Creating sample notifications...');
     const notifications = [
+      { userId: admin.id, title: 'Task Completed', message: 'Tunde Alabi completed: Design API schema', type: 'task_completed', severity: 'success', taskId: design },
+      { userId: admin.id, title: 'Sprint 4 Target Published', message: 'New department target: Deploy v2.0 Release', type: 'target_update', severity: 'info' },
+      { userId: admin.id, title: 'Deadline Warning', message: 'Database Migration is approaching its deadline', type: 'deadline_warning', severity: 'warning', taskId: build },
       { userId: staff[0].id, title: 'Task Assigned', message: 'You have been assigned: Design API schema', type: 'task_assigned', severity: 'info', taskId: design },
       { userId: engSupervisor.id, title: 'Task Completed', message: 'Tunde Alabi completed: Design API schema', type: 'task_completed', severity: 'success', taskId: design },
+      { userId: opsSupervisor.id, title: 'Invoice Reconciled', message: 'Ifeoma Nwosu submitted progress on monthly invoices', type: 'target_update', severity: 'info' },
       { userId: staff[2].id, title: 'Task Assigned', message: 'You have been assigned: Reconcile monthly invoices', type: 'task_assigned', severity: 'info', taskId: opsTask1 },
     ];
     for (const n of notifications) {
@@ -223,7 +227,7 @@ async function main() {
          FOREACH (_ IN CASE WHEN t IS NOT NULL THEN [1] ELSE [] END |
            MERGE (notif)-[:RELATED_TO]->(t)
          )`,
-        { id: uuid(), ...n },
+        { id: uuid(), ...n, taskId: (n as any).taskId ?? null },
       );
     }
 

@@ -7,7 +7,7 @@ export type Severity = 'info' | 'warning' | 'critical' | 'success';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly neo4j: Neo4jService) {}
+  constructor(private readonly neo4j: Neo4jService) { }
 
   async create(
     forUserId: string,
@@ -32,13 +32,7 @@ export class NotificationsService {
         MERGE (n)-[:RELATED_TO]->(t)
       )`,
       {
-        id,
-        title,
-        message,
-        type,
-        severity,
-        forUserId,
-        relatedTaskId: relatedTaskId ?? null,
+        id, title, message, type, severity, forUserId, relatedTaskId: relatedTaskId ?? null,
       },
     );
     return { id };
@@ -47,9 +41,9 @@ export class NotificationsService {
   async list(userId: string, filters: { type?: string; isRead?: string }) {
     return this.neo4j.run(
       `MATCH (n:Notification)-[:FOR_USER]->(u:User {id: $userId})
-       OPTIONAL MATCH (n)-[:RELATED_TO]->(t:Task)
        WHERE ($type IS NULL OR n.type = $type)
          AND ($isRead IS NULL OR n.isRead = $isReadBool)
+       OPTIONAL MATCH (n)-[:RELATED_TO]->(t:Task)
        RETURN n, t { .id, .title, .status } AS relatedTask
        ORDER BY n.createdAt DESC`,
       {

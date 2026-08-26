@@ -357,10 +357,13 @@ export default function DashboardPage() {
                                             background: "var(--popover)",
                                             border: "1px solid var(--border)",
                                             borderRadius: "8px",
-                                            fontSize: "12px",
+                                            fontSize: "11px",
                                             color: "var(--popover-foreground)",
                                         }}
+                                        itemStyle={{ color: "var(--muted-foreground)" }}
+                                        labelStyle={{ color: "var(--popover-foreground)" }}
                                         cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                                        labelFormatter={(val) => `${val} tasks`}
                                     />
                                     <Bar
                                         dataKey="count"
@@ -439,7 +442,6 @@ export default function DashboardPage() {
                                                 )}
                                             </div>
 
-                                            {/* Priority label */}
                                             <span
                                                 className={`hidden text-xs sm:inline ${priority.className}`}
                                             >

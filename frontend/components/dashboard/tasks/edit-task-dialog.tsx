@@ -212,7 +212,6 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   const currentDependencies = taskDetail?.dependencies ?? [];
   const currentDependencyIds = currentDependencies.map((d) => d.id);
 
-  // Available tasks to add as dependencies (exclude current task and already added dependencies)
   const availableDependencyCandidates = (allTasks ?? []).filter(
     (item) => item.t.id !== taskId && !currentDependencyIds.includes(item.t.id)
   );
@@ -229,7 +228,6 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
-            {/* Title */}
             <div className="space-y-1.5">
               <Label htmlFor="edit-task-title">Title *</Label>
               <Input
@@ -294,9 +292,8 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
               )}
             </div>
 
-            {/* Department + Priority */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              {/* <div className="space-y-1.5">
                 <Label htmlFor="edit-dept">Department</Label>
                 <Controller
                   name="departmentId"
@@ -326,7 +323,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                     </Select>
                   )}
                 />
-              </div>
+              </div> */}
 
               <div className="space-y-1.5">
                 <Label htmlFor="edit-priority">Priority</Label>
@@ -342,31 +339,29 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                         <SelectItem value="low" label="Low">Low</SelectItem>
                         <SelectItem value="medium" label="Medium">Medium</SelectItem>
                         <SelectItem value="high" label="High">High</SelectItem>
-                        <SelectItem value="urgent" label="Urgent">Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
               </div>
-            </div>
 
-            {/* Deadline */}
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-deadline">Deadline *</Label>
-              <div className="relative">
-                <CalendarIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                <Input
-                  id="edit-deadline"
-                  type="datetime-local"
-                  className="pl-9"
-                  {...register("deadline")}
-                />
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-deadline">Deadline *</Label>
+                <div className="relative">
+                  <CalendarIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                  <Input
+                    id="edit-deadline"
+                    type="datetime-local"
+                    className="pl-9"
+                    {...register("deadline")}
+                  />
+                </div>
+                {errors.deadline && (
+                  <p className="text-xs text-destructive">
+                    {errors.deadline.message}
+                  </p>
+                )}
               </div>
-              {errors.deadline && (
-                <p className="text-xs text-destructive">
-                  {errors.deadline.message}
-                </p>
-              )}
             </div>
 
             {/* Subtask Checklist Section */}
@@ -428,20 +423,18 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                         className="flex items-center gap-2 min-w-0 flex-1 truncate text-left cursor-pointer group"
                       >
                         <div
-                          className={`size-4.5 rounded-sm border flex items-center justify-center transition-colors shrink-0 ${
-                            s.isCompleted
-                              ? "bg-primary border-primary text-primary-foreground"
-                              : "border-muted-foreground/40 group-hover:border-foreground"
-                          }`}
+                          className={`size-4.5 rounded-sm border flex items-center justify-center transition-colors shrink-0 ${s.isCompleted
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-muted-foreground/40 group-hover:border-foreground"
+                            }`}
                         >
                           {s.isCompleted && <Check className="size-3" />}
                         </div>
                         <span
-                          className={`truncate text-sm ${
-                            s.isCompleted
-                              ? "line-through text-muted-foreground"
-                              : "text-foreground"
-                          }`}
+                          className={`truncate text-sm ${s.isCompleted
+                            ? "line-through text-muted-foreground"
+                            : "text-foreground"
+                            }`}
                         >
                           {s.title}
                         </span>

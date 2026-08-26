@@ -1,10 +1,14 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { Neo4jService } from '../../lib/neo4j/neo4j.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly neo4j: Neo4jService) { }
+  constructor(
+    private readonly neo4j: Neo4jService,
+    private readonly notifications: NotificationsService,
+  ) { }
 
   async create(taskId: string, userId: string, content: string, parentCommentId?: string) {
     const id = uuid();
@@ -41,6 +45,32 @@ export class CommentsService {
         parentCommentId: parentCommentId ?? null,
       },
     );
+
+    try {
+      // Notify task assignee if the author is not the assignee
+      const [taskInfo] = await this.neo4j.run(
+        `MATCH (t:Task {id: $taskId})
+         OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(assignee:User)
+         OPTIONAL MATCH (author:User {id: $userId})
+         RETURN t.title AS title, assignee.id AS assigneeId,
+                author.firstName + ' ' + author.lastName AS authorName`,
+        { taskId, userId },
+        'READ',
+      );
+      if (taskInfo?.assigneeId && taskInfo.assigneeId !== userId) {
+        await this.notifications.create(
+          taskInfo.assigneeId,
+          'New Comment',
+          `${taskInfo.authorName || 'Someone'} commented on "${taskInfo.title}"`,
+          'comment_added',
+          'info',
+          taskId,
+        );
+      }
+    } catch {
+      // notification should not block comment creation
+    }
+
     return row;
   }
 

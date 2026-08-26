@@ -225,7 +225,7 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
 
             {/* Department + Priority in a row */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              {/* <div className="space-y-1.5">
                 <Label htmlFor="task-dept">Department</Label>
                 <Controller
                   name="departmentId"
@@ -251,7 +251,7 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
                     </Select>
                   )}
                 />
-              </div>
+              </div> */}
 
               <div className="space-y-1.5">
                 <Label htmlFor="task-priority">Priority</Label>
@@ -267,31 +267,29 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
                         <SelectItem value="low" label="Low">Low</SelectItem>
                         <SelectItem value="medium" label="Medium">Medium</SelectItem>
                         <SelectItem value="high" label="High">High</SelectItem>
-                        <SelectItem value="urgent" label="Urgent">Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
               </div>
-            </div>
 
-            {/* Deadline */}
-            <div className="space-y-1.5">
-              <Label htmlFor="task-deadline">Deadline *</Label>
-              <div className="relative">
-                <CalendarIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                <Input
-                  id="task-deadline"
-                  type="datetime-local"
-                  className="pl-9"
-                  {...register("deadline")}
-                />
+              <div className="space-y-1.5">
+                <Label htmlFor="task-deadline">Deadline *</Label>
+                <div className="relative">
+                  <CalendarIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                  <Input
+                    id="task-deadline"
+                    type="datetime-local"
+                    className="pl-9"
+                    {...register("deadline")}
+                  />
+                </div>
+                {errors.deadline && (
+                  <p className="text-xs text-destructive">
+                    {errors.deadline.message}
+                  </p>
+                )}
               </div>
-              {errors.deadline && (
-                <p className="text-xs text-destructive">
-                  {errors.deadline.message}
-                </p>
-              )}
             </div>
 
             {/* Subtask Checklist Creation */}
@@ -357,7 +355,6 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
               )}
             </div>
 
-            {/* Task Dependency / Prerequisites */}
             <div className="rounded-lg border bg-muted/20 p-3 space-y-2.5">
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -369,7 +366,6 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
                 Select tasks that must be completed before this task can be started.
               </p>
 
-              {/* Selected Dependency Badges */}
               {selectedDepIds.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pb-1">
                   {selectedDepIds.map((depId) => {
@@ -434,7 +430,7 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
+          <DialogFooter className="px-6 shrink-0">
             <Button
               variant="outline"
               type="button"

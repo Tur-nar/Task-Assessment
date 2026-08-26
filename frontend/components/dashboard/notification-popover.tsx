@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Check, CheckCheck, Trash2, ClipboardList, CheckCircle2, MessageSquare, Clock, AlertTriangle, Target, ArrowRight, Sparkles } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, ClipboardList, CheckCircle2, MessageSquare, Clock, AlertTriangle, Target, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -140,9 +140,9 @@ export function NotificationPopover() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-90 ssm:w-100 overflow-hidden rounded-2xl border border-white/20 bg-background/85 p-0 shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-card/85"
+        className="w-96 p-0 border-border/60 bg-card/95 backdrop-blur-lg"
       >
-        <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm">Notifications</span>
             {unreadCount > 0 && (
@@ -199,14 +199,12 @@ export function NotificationPopover() {
                     className={`group relative flex gap-3 p-3.5 transition-colors hover:bg-muted/40 ${isUnread ? "bg-primary/5 dark:bg-primary/10" : ""
                       }`}
                   >
-                    {/* Type icon */}
                     <div
                       className={`flex size-8 shrink-0 items-center justify-center rounded-xl border ${cfg.bg} ${cfg.border} ${cfg.color}`}
                     >
                       <Icon className="size-4" />
                     </div>
 
-                    {/* Content */}
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-start justify-between gap-1.5">
                         <p
@@ -224,7 +222,6 @@ export function NotificationPopover() {
                         {item.n.message}
                       </p>
 
-                      {/* Related task tag & timestamp */}
                       <div className="flex items-center gap-2 pt-0.5 text-[10px] text-muted-foreground/80">
                         {item.relatedTask && (
                           <span className="truncate rounded-md bg-muted px-1.5 py-0.5 font-medium text-foreground/80">
@@ -235,7 +232,6 @@ export function NotificationPopover() {
                       </div>
                     </div>
 
-                    {/* Quick action buttons on hover */}
                     <div className="flex shrink-0 flex-col items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                       {isUnread && (
                         <button
@@ -260,8 +256,8 @@ export function NotificationPopover() {
             </AnimatePresence>
           ) : (
             <div className="flex flex-col items-center justify-center p-8 text-center">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-muted/50 mb-2">
-                <Sparkles className="size-6 text-muted-foreground" />
+              <div className="flex size-12 items-center justify-center rounded-2xl mb-2">
+                <Bell className="size-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium">All caught up!</p>
               <p className="text-xs text-muted-foreground mt-0.5">

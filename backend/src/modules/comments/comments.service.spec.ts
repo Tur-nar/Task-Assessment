@@ -1,21 +1,27 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Neo4jService } from '../../lib/neo4j/neo4j.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CommentsService } from './comments.service';
 
 describe('CommentsService', () => {
   let service: CommentsService;
   let mockNeo4j: { run: jest.Mock };
+  let mockNotifications: { create: jest.Mock };
 
   beforeEach(async () => {
     mockNeo4j = {
       run: jest.fn(),
+    };
+    mockNotifications = {
+      create: jest.fn().mockResolvedValue({ id: 'notif-1' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CommentsService,
         { provide: Neo4jService, useValue: mockNeo4j },
+        { provide: NotificationsService, useValue: mockNotifications },
       ],
     }).compile();
 

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { Neo4jService } from '../../lib/neo4j/neo4j.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
@@ -8,7 +9,10 @@ const OPEN_STATUSES = ['completed', 'completed_late'];
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly neo4j: Neo4jService) { }
+  constructor(
+    private readonly neo4j: Neo4jService,
+    private readonly notifications: NotificationsService,
+  ) { }
 
   async create(dto: CreateTaskDto, assignedById: string) {
     const id = uuid();
@@ -19,19 +23,15 @@ export class TasksService {
         createdAt: datetime()
       })
       WITH t
-      MATCH (assignee:User {id: $assignedToId})
-      MERGE (t)-[:ASSIGNED_TO]->(assignee)
+      OPTIONAL MATCH (assignee:User {id: $assignedToId})
+      FOREACH (_ IN CASE WHEN assignee IS NOT NULL THEN [1] ELSE [] END | MERGE (t)-[:ASSIGNED_TO]->(assignee))
       WITH t
-      MATCH (assigner:User {id: $assignedById})
-      MERGE (t)-[:ASSIGNED_BY]->(assigner)
+      OPTIONAL MATCH (assigner:User {id: $assignedById})
+      FOREACH (_ IN CASE WHEN assigner IS NOT NULL THEN [1] ELSE [] END | MERGE (t)-[:ASSIGNED_BY]->(assigner))
       WITH t
       OPTIONAL MATCH (d:Department {id: $departmentId})
       FOREACH (_ IN CASE WHEN d IS NOT NULL THEN [1] ELSE [] END | MERGE (t)-[:BELONGS_TO]->(d))
-      WITH t
-      UNWIND (CASE WHEN $dependsOnTaskIds IS NULL THEN [] ELSE $dependsOnTaskIds END) AS depId
-      MATCH (dep:Task {id: depId})
-      MERGE (t)-[:DEPENDS_ON]->(dep)
-      RETURN DISTINCT t`,
+      RETURN t`,
       {
         id,
         title: dto.title,
@@ -41,20 +41,37 @@ export class TasksService {
         departmentId: dto.departmentId ?? null,
         priority: dto.priority ?? 'medium',
         deadline: dto.deadline,
-        dependsOnTaskIds: dto.dependsOnTaskIds ?? null,
       },
     );
-    return row.t;
+
+    if (dto.dependsOnTaskIds && dto.dependsOnTaskIds.length > 0) {
+      await this.neo4j.run(
+        `MATCH (t:Task {id: $id})
+         UNWIND $dependsOnTaskIds AS depId
+         MATCH (dep:Task {id: depId})
+         MERGE (t)-[:DEPENDS_ON]->(dep)`,
+        { id, dependsOnTaskIds: dto.dependsOnTaskIds },
+      );
+    }
+
+    if (dto.assignedToId && dto.assignedToId !== assignedById) {
+      await this.notifications.create(
+        dto.assignedToId,
+        'Task Assigned',
+        `You have been assigned: ${dto.title}`,
+        'task_assigned',
+        'info',
+        id,
+      );
+    }
+
+    return row?.t ?? { id, title: dto.title, status: 'not_started', priority: dto.priority ?? 'medium' };
   }
 
   list(
     filters: { status?: string; priority?: string; departmentId?: string; assignedToId?: string },
     caller?: { id: string; role: string },
   ) {
-    // Determine the set of visible user IDs based on caller role.
-    // super_admin / admin → all tasks (scopedIds = null).
-    // supervisor          → own tasks + direct reports' tasks.
-    // staff               → only their own tasks.
     const isSupervisor = caller?.role === 'supervisor';
     const isStaff = caller?.role === 'staff';
 
@@ -276,6 +293,31 @@ export class TasksService {
            END`,
       { id, status },
     );
+
+    if (status === 'completed' || status === 'completed_late') {
+      try {
+        const [taskInfo] = await this.neo4j.run(
+          `MATCH (t:Task {id: $id})
+           OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(assignee:User)
+           OPTIONAL MATCH (t)-[:ASSIGNED_BY]->(assigner:User)
+           RETURN t.title AS title, assigner.id AS assignerId, assignee.id AS assigneeId,
+                  assignee.firstName + ' ' + assignee.lastName AS assigneeName`,
+          { id },
+          'READ',
+        );
+        if (taskInfo?.assignerId && taskInfo.assignerId !== taskInfo?.assigneeId) {
+          await this.notifications.create(
+            taskInfo.assignerId,
+            'Task Completed',
+            `${taskInfo.assigneeName || 'A team member'} completed "${taskInfo.title}"`,
+            'task_completed',
+            'success',
+            id,
+          );
+        }
+      } catch {
+      }
+    }
   }
 
   async addDependency(taskId: string, dependsOnTaskId: string) {
