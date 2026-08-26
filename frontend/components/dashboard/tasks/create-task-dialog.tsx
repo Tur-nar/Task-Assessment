@@ -111,7 +111,6 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
     try {
       const toastId = toast.loading("Creating task and setting up dependencies...");
 
-      // 1. Create the primary task
       const res = await createTask.mutateAsync({
         title: data.title,
         description: data.description,
@@ -124,7 +123,6 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
 
       const newTaskId = (res as any)?.data?.id || (res as any)?.id;
 
-      // 2. Create initial subtasks if any
       if (newTaskId && subtasks.length > 0) {
         await Promise.all(
           subtasks.map((title, order) =>
