@@ -97,8 +97,8 @@ export function EditSupervisorDialog({
             values.departmentId === "none" ? undefined : values.departmentId || undefined,
           supervisorId:
             values.role === "admin" ||
-            values.role === "super_admin" ||
-            values.supervisorId === "none"
+              values.role === "super_admin" ||
+              values.supervisorId === "none"
               ? undefined
               : values.supervisorId || undefined,
         },
@@ -250,13 +250,13 @@ export function EditSupervisorDialog({
                       <SelectValue placeholder="Select supervisor">
                         {field.value && field.value !== "none"
                           ? (() => {
-                              const s = availableSupervisors.find(
-                                (sup) => sup.u.id === field.value
-                              );
-                              return s
-                                ? `${s.u.firstName} ${s.u.lastName}`
-                                : "No Supervisor";
-                            })()
+                            const s = availableSupervisors.find(
+                              (sup) => sup.u.id === field.value
+                            );
+                            return s
+                              ? `${s.u.firstName} ${s.u.lastName}`
+                              : "No Supervisor";
+                          })()
                           : "No Supervisor"}
                       </SelectValue>
                     </SelectTrigger>
@@ -274,7 +274,7 @@ export function EditSupervisorDialog({
             </div>
           )}
 
-          <DialogFooter className="pt-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"

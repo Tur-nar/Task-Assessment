@@ -201,7 +201,7 @@ export default function StaffPage() {
                                         variants={rowVariants}
                                         className={`
                                             flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:gap-4
-                                            ${currentUser?.id === u.id ? "bg-muted/50 hover:bg-bg-muted/50" : ""}
+                                            ${currentUser?.id === u.id ? "bg-muted/50 hover:bg-muted/50" : ""}
                                         `}
                                     >
                                         <div className="flex flex-1 items-center gap-3 hover:underline cursor-pointer" onClick={() => setViewUserId(u.id)}>

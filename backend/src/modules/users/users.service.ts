@@ -7,7 +7,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly neo4j: Neo4jService) {}
+  constructor(private readonly neo4j: Neo4jService) { }
 
   async create(dto: CreateUserDto) {
     const existing = await this.findByEmail(dto.email);
@@ -103,7 +103,18 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto) {
-    // Update basic fields
+    const [row] = await this.neo4j.run(
+      `MATCH (u:User {id: $id}) 
+       RETURN u.role AS role
+       `,
+      { id },
+      'READ',
+    );
+
+    if (row?.role === 'super_admin') {
+      throw new BadRequestException('Cannot update a super admin');
+    }
+
     await this.neo4j.run(
       `MATCH (u:User {id: $id})
        SET u.firstName = coalesce($firstName, u.firstName),
@@ -117,7 +128,6 @@ export class UsersService {
       },
     );
 
-    // Update department relationship if provided
     if (dto.departmentId !== undefined) {
       await this.neo4j.run(
         `MATCH (u:User {id: $id})
@@ -132,7 +142,6 @@ export class UsersService {
       );
     }
 
-    // Update supervisor relationship if provided
     if (dto.supervisorId !== undefined) {
       await this.neo4j.run(
         `MATCH (u:User {id: $id})
@@ -151,16 +160,18 @@ export class UsersService {
   }
 
   async delete(id: string) {
-    // Block delete if user has active tasks
     const [row] = await this.neo4j.run(
       `MATCH (u:User {id: $id})
        OPTIONAL MATCH (t:Task)-[:ASSIGNED_TO]->(u)
        WHERE t.status IN ['not_started', 'in_progress', 'overdue']
-       RETURN count(t) AS activeTasks`,
+       RETURN count(t) AS activeTasks, u.role as role`,
       { id },
       'READ',
     );
-    if (row && row.activeTasks > 0) {
+    if (row?.role === 'super_admin') {
+      throw new BadRequestException('Cannot delete a super admin');
+    }
+    if (row.activeTasks > 0) {
       throw new BadRequestException('Cannot delete a user with active tasks. Reassign or complete their tasks first.');
     }
     await this.neo4j.run(`MATCH (u:User {id: $id}) DETACH DELETE u`, { id });
@@ -187,6 +198,17 @@ export class UsersService {
   }
 
   async setStatus(id: string, status: 'active' | 'inactive') {
+    const [row] = await this.neo4j.run(
+      `MATCH (u:User {id: $id}) 
+       RETURN u.role AS role
+       `,
+      { id },
+      'READ',
+    );
+
+    if (row?.role === 'super_admin') {
+      throw new BadRequestException('Cannot change status of a super admin');
+    }
     await this.neo4j.run(`MATCH (u:User {id: $id}) SET u.status = $status`, {
       id,
       status,

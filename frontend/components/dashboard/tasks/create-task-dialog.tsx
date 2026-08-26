@@ -186,7 +186,6 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
               />
             </div>
 
-            {/* Assignee */}
             <div className="space-y-1.5">
               <Label htmlFor="task-assignee">Assignee *</Label>
               <Controller
@@ -428,7 +427,7 @@ export function CreateTaskDialog({ open, onOpenChange }: CreateTaskDialogProps) 
             </div>
           </div>
 
-          <DialogFooter className="px-6 shrink-0">
+          <DialogFooter className="px-6 shrink-0 mb-0">
             <Button
               variant="outline"
               type="button"

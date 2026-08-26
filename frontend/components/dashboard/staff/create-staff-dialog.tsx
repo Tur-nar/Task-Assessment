@@ -70,6 +70,8 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
     });
 
     const selectedRole = watch("role");
+    const selectedDeptId = watch("departmentId");
+    const selectedSupId = watch("supervisorId");
 
     const onSubmit = (values: CreateUserForm) => {
         createUser.mutate(values, {
@@ -96,8 +98,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    {/* Name row */}
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pb-0">
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                             <Label htmlFor="firstName" className="text-xs">
@@ -131,7 +132,6 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                         </div>
                     </div>
 
-                    {/* Email */}
                     <div className="space-y-1.5">
                         <Label htmlFor="email" className="text-xs">
                             Email
@@ -188,10 +188,13 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                     <div className="space-y-1.5">
                         <Label className="text-xs">Department</Label>
                         <Select
+                            value={selectedDeptId}
                             onValueChange={(v) => setValue("departmentId", v as string)}
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder="Select department" />
+                                <SelectValue placeholder="Select department">
+                                    {departments?.find((d) => d.d.id === selectedDeptId)?.d.name}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {departments?.map((dept) => (
@@ -207,10 +210,13 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                         <div className="space-y-1.5">
                             <Label className="text-xs">Supervisor</Label>
                             <Select
-                                onValueChange={(v) => setValue("supervisorId", v as string | undefined)}
+                                value={selectedSupId}
+                                onValueChange={(v) => setValue("supervisorId", v as string)}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select supervisor" />
+                                    <SelectValue placeholder="Select supervisor">
+                                        {supervisors?.find((s) => s.u.id === selectedSupId)?.u.firstName} {supervisors?.find((s) => s.u.id === selectedSupId)?.u.lastName}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {supervisors?.map((sup) => (
@@ -223,7 +229,7 @@ export function CreateStaffDialog({ open, onOpenChange }: CreateStaffDialogProps
                         </div>
                     )}
 
-                    <DialogFooter className="pt-2">
+                    <DialogFooter className="">
                         <Button
                             type="button"
                             variant="outline"

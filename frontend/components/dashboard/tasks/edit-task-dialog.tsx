@@ -554,7 +554,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
+          <DialogFooter className="px-6 py-4 border-t mb-0 shrink-0">
             <Button
               variant="outline"
               type="button"

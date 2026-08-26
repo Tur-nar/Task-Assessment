@@ -167,7 +167,7 @@ export function EditDepartmentDialog({
             </Select>
           </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

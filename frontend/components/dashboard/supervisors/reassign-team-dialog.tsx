@@ -167,11 +167,10 @@ export function ReassignTeamDialog({
                     <div
                       key={member.id}
                       onClick={() => toggleSelectMember(member.id)}
-                      className={`flex cursor-pointer items-center justify-between rounded-md p-2 text-xs transition-colors ${
-                        isSelected
+                      className={`flex cursor-pointer items-center justify-between rounded-md p-2 text-xs transition-colors ${isSelected
                           ? "bg-accent font-medium text-accent-foreground"
                           : "hover:bg-muted/40"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         <Avatar className="size-6">
@@ -201,7 +200,7 @@ export function ReassignTeamDialog({
             )}
           </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

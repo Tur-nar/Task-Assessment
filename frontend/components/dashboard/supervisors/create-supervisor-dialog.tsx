@@ -220,7 +220,7 @@ export function CreateSupervisorDialog({
             </Select>
           </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"

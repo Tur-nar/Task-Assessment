@@ -250,7 +250,7 @@ export function EditStaffDialog({ user, open, onOpenChange }: EditStaffDialogPro
             </div>
           )}
 
-          <DialogFooter className="pt-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
