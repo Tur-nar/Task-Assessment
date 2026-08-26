@@ -13,11 +13,17 @@ describe("DropdownMenu Component", () => {
       <DropdownMenu open={true}>
         <DropdownMenuTrigger>Open</DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel className="custom-label" inset>
+            My Account
+          </DropdownMenuLabel>
         </DropdownMenuContent>
       </DropdownMenu>
     );
 
-    expect(screen.getByText("My Account")).toBeInTheDocument();
+    const label = screen.getByText("My Account");
+    expect(label).toBeInTheDocument();
+    expect(label).toHaveAttribute("data-slot", "dropdown-menu-label");
+    expect(label).toHaveAttribute("data-inset", "true");
+    expect(label).toHaveClass("custom-label");
   });
 });
