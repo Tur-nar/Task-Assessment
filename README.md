@@ -1,4 +1,4 @@
-# TaskManager Pro (CognoDB Edition)
+# TaskManager Pro
 
 > A task and team management app, built with NestJS, Next.js 16, and CognoDB (a graph database that speaks openCypher over the Bolt protocol).
 
@@ -307,6 +307,20 @@ When the backend starts against an empty CognoDB database, it automatically crea
    npm run dev
    ```
    *The web app runs at `http://localhost:3001` (or `http://localhost:3000` if the backend isn't running on 3000).*
+
+---
+
+## Ui Screenshots
+
+<img width="2724" height="1846" alt="landing-page" src="https://github.com/user-attachments/assets/629f9e4a-4daf-4d7a-bc75-776baa6be6a8" />
+
+---
+
+<img width="2834" height="1846" alt="login" src="https://github.com/user-attachments/assets/d345ce81-87b8-40d9-863f-e2df14a1962f" />
+
+---
+
+<img width="2834" height="1846" alt="dashboard" src="https://github.com/user-attachments/assets/14666762-8fd4-45cc-8dff-11212fafdfbc" />
 
 ---
 

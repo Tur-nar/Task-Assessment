@@ -1,4 +1,4 @@
-# TaskManager Pro (CognoDB Edition) — Technical Documentation
+# TaskManager Pro (CognoDB) — Technical Documentation
 
 > **Application Type:** Full-Stack Enterprise Task Management System  
 > **Database:** CognoDB (Managed openCypher Graph Database via Bolt Protocol)  

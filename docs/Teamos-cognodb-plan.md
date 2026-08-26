@@ -1,4 +1,4 @@
-# TaskManager Pro — CognoDB Edition
+# TaskManager Pro — CognoDB
 
 ## 1. Why a graph database (README seed)
 
@@ -26,9 +26,7 @@ Repos stay split, matching what you're used to and what's already partly built.
 
 ## 3. Feature scope
 
-**Keeping (from TaskManager Pro):** Tasks, Sub-tasks, Task Comments (threaded), Targets + Progress Entries, Performance scoring, Departments, Supervisors, Staff/Users, Notifications.
-
-**Dropping:** Complaints (only cut).
+Tasks, Sub-tasks, Task Comments (threaded), Targets + Progress Entries, Performance scoring, Departments, Supervisors, Staff/Users, Notifications.
 
 **Adding:** Task dependencies — `Task -[:DEPENDS_ON]-> Task`, blocking/blocked-by view, "ready to start" check.
 
