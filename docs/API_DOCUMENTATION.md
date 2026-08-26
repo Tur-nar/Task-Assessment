@@ -1,4 +1,4 @@
-# TaskManager Pro (CognoDB Edition) — API Documentation for Frontend
+# TaskManager Pro (CognoDB) — API Documentation for Frontend
 
 > **Base URL:** `http://localhost:3000` (development) / `https://your-api-domain.com` (production)  
 > **Authentication Header:** `Authorization: Bearer <jwt_token>`  
