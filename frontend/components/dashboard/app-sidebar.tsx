@@ -106,7 +106,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {mainNav.map((item) => {
                 const active = isActive(item.href, item.exact);
                 return (
@@ -118,7 +118,7 @@ export function AppSidebar() {
                         className="opacity-40 cursor-not-allowed"
                       >
                         <item.icon className="size-4" />
-                        <span>{item.title}</span>
+                        <span className="text-xs">{item.title}</span>
                         <Badge
                           variant="secondary"
                           className="ml-auto text-[10px] px-1.5 py-0"
@@ -134,7 +134,7 @@ export function AppSidebar() {
                         className="relative"
                       >
                         <item.icon className="size-4" />
-                        <span>{item.title}</span>
+                        <span className="text-xs">{item.title}</span>
                         {active && (
                           <motion.div
                             layoutId="sidebar-active"
@@ -161,7 +161,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Analytics</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {analyticsNav.map((item) => {
                 const active = isActive(item.href, item.exact);
                 return (
@@ -173,7 +173,7 @@ export function AppSidebar() {
                         className="opacity-40 cursor-not-allowed"
                       >
                         <item.icon className="size-4" />
-                        <span>{item.title}</span>
+                        <span className="text-xs">{item.title}</span>
                         <Badge
                           variant="secondary"
                           className="ml-auto text-[10px] px-1.5 py-0"
@@ -189,7 +189,7 @@ export function AppSidebar() {
                         className="relative"
                       >
                         <item.icon className="size-4" />
-                        <span>{item.title}</span>
+                        <span className="text-xs">{item.title}</span>
                         {active && (
                           <motion.div
                             layoutId="sidebar-active"
