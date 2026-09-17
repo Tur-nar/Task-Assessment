@@ -92,8 +92,7 @@ export default function LandingPage() {
             <section
                 className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
             >
-                {/* Background: Floating graph nodes (pure CSS animation) */}
-                <FloatingNodes opacity={0.25} />
+                <FloatingNodes />
 
                 <div className="relative z-10 flex flex-col items-center gap-6 px-6 max-w-4xl mx-auto text-center">
                     <motion.h2

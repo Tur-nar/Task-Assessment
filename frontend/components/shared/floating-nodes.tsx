@@ -73,7 +73,7 @@ export function FloatingNodes({ className, opacity = 0.4 }: FloatingNodesProps) 
                         cy={`${node.y}%`}
                         r={node.size}
                         className="fill-background"
-                        initial={{ scale: 1, opacity: 0.4 }}
+                        initial={{ scale: 1, opacity: 0.8 }}
                         animate={{
                             scale: [0.8, 1.2, 0.8],
                             opacity: [0.3, 0.7, 0.3],
