@@ -2,30 +2,13 @@
 
 import { useState } from "react";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
-import {
-  MoreHorizontal,
-  Eye,
-  Pencil,
-  Trash2,
-  Calendar,
-  ArrowUpDown,
-  CheckCircle2,
-  Clock,
-  RotateCcw,
-  Loader2,
-} from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash2, Calendar, ArrowUpDown, CheckCircle2, Clock, RotateCcw, Loader2 } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PRIORITY_CONFIG, STATUS_CONFIG } from "./task-card";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { useUpdateTaskStatus } from "@/hooks/use-tasks";
