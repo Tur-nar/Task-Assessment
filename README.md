@@ -21,18 +21,6 @@ Regular task managers struggle with three things: reporting hierarchies that can
 
 ---
 
-## Why a Graph Database?
-
-Part of this assignment was picking a problem where a graph database is a genuinely better fit than a relational one, not just a different way to store the same data. Two relationships in this app fit that description: they're self-referencing and can go arbitrarily deep, which is what graph databases are built for.
-
-| Problem | In a relational database | In CognoDB |
-|---|---|---|
-| **Reporting chains** — how far up does an employee's management line go? | Not known in advance, so it's either a recursive query or fetching one manager at a time in a loop. | One line — `(u)-[:SUPERVISED_BY*1..10]->(m)` — returns the whole chain in one query. |
-| **Task dependencies** — what's blocking this task, including what's blocking the things blocking it? | The tasks table joined to itself repeatedly, plus extra logic to stop things if a dependency loop was ever created by mistake. | Same idea, different relationship — `(t)-[:DEPENDS_ON*1..20]->(blocker)`. |
-| **Stopping circular dependencies before they happen** | A database trigger, or pulling the whole dependency graph into the app to check by hand. | One query, run before saving: "does a path already exist going the other way?" |
-
----
-
 ## Graph Data Model
 
 The app has 6 node types connected by 13 relationship types.
