@@ -215,6 +215,89 @@ When the backend starts against an empty CognoDB database, it automatically crea
 
 ---
 
+## Setup & Installation Guide
+
+### Prerequisites
+- **Node.js:** v20.x or higher
+- **npm:** v10.x or higher
+
+---
+
+### Step 1: Create a CognoDB Instance
+
+1. Go to [console.cognodb.com](https://console.cognodb.com) and sign up. The free tier doesn't need a credit card.
+2. Create a new instance and pick the free **c0** size.
+3. Once created and running click on the connect button and copy the connection URI (it looks like `bolt+s://<instance-id>.databases.cognodb.cloud`) and the password.
+
+---
+ 
+### Step 2: Backend Setup
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create your `.env` file:
+   ```env
+   PORT=3000
+   FRONTEND_URL=http://localhost:3001
+   JWT_SECRET=supersecretjwtkey_replace_in_production
+   JWT_EXPIRES_IN=7d
+
+   # CognoDB Cloud Connection
+   COGNODB_URI=bolt+s://<your-instance-id>.databases.cognodb.cloud
+   COGNODB_USER=cognodb
+   COGNODB_PASSWORD=<your-generated-password>
+
+   # Super Admin Bootstrap (Created automatically if DB is empty)
+   SUPER_ADMIN_EMAIL=admin@org.com
+   SUPER_ADMIN_PASSWORD=AdminPassword123!
+   ```
+
+4. Add sample data (optional):
+   ```bash
+   npm run seed
+   ```
+
+5. Start the backend:
+   ```bash
+   npm run start:dev
+   ```
+   *The backend runs at `http://localhost:3000`.*
+
+---
+
+### Step 3: Frontend Setup
+
+1. Open a new terminal and navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create your `.env.local` file:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:3000
+   ```
+
+4. Start the frontend:
+   ```bash
+   npm run dev
+   ```
+   *The web app runs at `http://localhost:3001` (or `http://localhost:3000` if the backend isn't running on 3000).*
+
+---
+
 ## Ui Screenshots
 
 <img width="2724" height="1846" alt="landing-page" src="https://github.com/user-attachments/assets/629f9e4a-4daf-4d7a-bc75-776baa6be6a8" />
