@@ -294,7 +294,6 @@ When the backend starts against an empty CognoDB database, it automatically crea
    ```bash
    npm run dev
    ```
-   *The web app runs at `http://localhost:3001` (or `http://localhost:3000` if the backend isn't running on 3000).*
 
 ---
 
